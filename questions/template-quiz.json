@@ -1,7 +1,7 @@
 {
-  "setName": "Science",
-  "roomId": "science",
-  "setDescription": "Description for Science",
+  "setName": "Template Quiz",
+  "roomId": "template-quiz",
+  "setDescription": "Description for Template Quiz",
   "questions": [
     {
       "id": 1,
