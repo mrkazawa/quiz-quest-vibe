@@ -184,7 +184,7 @@
           <div class="d-flex align-items-center" style="width: 25%;">
             <img src="quiz-quest-logo.png" alt="Quiz Quest Logo" height="50" id="logoHome" class="quiz-logo-clickable" role="button">
           </div>
-          <h2 class="mb-0 quiz-title" id="headerTitle" style="color: #654321;">Quiz Selection</h2>
+          <h2 class="mb-0 quiz-title" id="headerTitle" style="color: #654321;">Quiz Result</h2>
           <div style="width: 25%; text-align: right;">
             <a href="/api/logout" class="btn btn-outline-danger ms-2"><i class="bi bi-box-arrow-right"></i> Logout</a>
           </div>
@@ -386,7 +386,7 @@
 
             <div class="mb-4">
               <h4>Final Rankings</h4>
-              <div class="table-responsive">
+              <div class="table-responsive mb-3">
                 <table class="table ranking-table">
                   <thead>
                     <tr>
@@ -400,12 +400,14 @@
                   </tbody>
                 </table>
               </div>
-            </div>
-
-            <div class="d-grid">
-              <a href="/teacher" class="btn btn-lg btn-primary">
-                <i class="bi bi-arrow-repeat"></i> Start New Quiz
-              </a>
+              <div class="d-flex" style="width:100%;">
+                <a href="/teacher" class="btn btn-lg btn-primary flex-grow-1 me-2" style="min-width:0; flex-basis: 0; flex-shrink:1; flex-grow:3;">
+                  <i class="bi bi-arrow-repeat"></i> Start New Quiz
+                </a>
+                <button id="downloadCsvBtn" class="btn btn-outline-secondary btn-sm" style="white-space:nowrap; flex-basis:0; flex-shrink:1; flex-grow:1; min-width:120px;">
+                  <i class="bi bi-download"></i> Download CSV
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -541,6 +543,9 @@
             <div class="d-flex gap-2">
               <button id="backToHistoryBtn" class="btn btn-secondary">
                 <i class="bi bi-arrow-left"></i> Back
+              </button>
+              <button id="downloadHistoryCsvBtn" class="btn btn-outline-secondary btn-sm" style="white-space:nowrap; min-width:120px;">
+                <i class="bi bi-download"></i> Download CSV
               </button>
             </div>
           </div>

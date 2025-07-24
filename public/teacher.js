@@ -98,6 +98,46 @@ function loadAvailableQuizzes() {
 
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Download CSV button for quiz history detail
+  const downloadHistoryCsvBtn = document.getElementById('downloadHistoryCsvBtn');
+  if (downloadHistoryCsvBtn) {
+    downloadHistoryCsvBtn.addEventListener('click', () => {
+      const table = document.getElementById('historyRankingsTable');
+      if (!table) return;
+      let csv = 'Rank,Player,Student ID,Score\n';
+      for (const row of table.rows) {
+        // Rank: remove #
+        const rankCell = row.cells[0]?.textContent?.replace('#', '').trim() || '';
+        // Player: extract name and student ID from cell
+        let playerName = '';
+        let studentId = '';
+        if (row.cells[1]) {
+          // The cell contains player name and a <small> with ID
+          const cell = row.cells[1];
+          const nameNode = cell.childNodes[0];
+          playerName = nameNode ? nameNode.textContent.trim() : '';
+          const small = cell.querySelector('small');
+          if (small) {
+            const match = small.textContent.match(/ID: (.+)/);
+            studentId = match ? match[1].trim() : '';
+          }
+        }
+        // Score
+        const score = row.cells[2]?.textContent?.trim() || '';
+        csv += `"${rankCell}","${playerName}","${studentId}","${score}"\n`;
+      }
+      // Download as CSV
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'quiz-history-rankings.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+  }
   loadAvailableQuizzes();
 });
 
@@ -462,13 +502,14 @@ socket.on('quiz_ended', data => {
 document.addEventListener('DOMContentLoaded', () => {
   // Show Create Room screen when clicking the Create Room button
   const showCreateRoomBtn = document.getElementById('showCreateRoomBtn');
-  
-  showCreateRoomBtn.addEventListener('click', () => {
-    // Load available quizzes and navigate to the create room screen
-    loadAvailableQuizzes();
-    showScreen(createRoomScreen);
-  });
-  
+  if (showCreateRoomBtn) {
+    showCreateRoomBtn.addEventListener('click', () => {
+      // Load available quizzes and navigate to the create room screen
+      loadAvailableQuizzes();
+      showScreen(createRoomScreen);
+    });
+  }
+
   // Back to dashboard from create room screen
   const backToTeacherFromCreateBtn = document.getElementById('backToTeacherFromCreateBtn');
   if (backToTeacherFromCreateBtn) {
@@ -477,11 +518,52 @@ document.addEventListener('DOMContentLoaded', () => {
       loadAvailableQuizzes();
     });
   }
-  
+
   // Refresh quizzes button
   const refreshQuizzesBtn = document.getElementById('refreshQuizzesBtn');
   if (refreshQuizzesBtn) {
     refreshQuizzesBtn.addEventListener('click', loadAvailableQuizzes);
+  }
+
+  // Download CSV button for final rankings
+  const downloadCsvBtn = document.getElementById('downloadCsvBtn');
+  if (downloadCsvBtn) {
+    downloadCsvBtn.addEventListener('click', () => {
+      const table = document.getElementById('completionRankingsTable');
+      if (!table) return;
+      let csv = 'Rank,Player,Student ID,Score\n';
+      for (const row of table.rows) {
+        // Rank: remove #
+        const rankCell = row.cells[0]?.textContent?.replace('#', '').trim() || '';
+        // Player: extract name and student ID from cell
+        let playerName = '';
+        let studentId = '';
+        if (row.cells[1]) {
+          // The cell contains player name and a <small> with ID
+          const cell = row.cells[1];
+          const nameNode = cell.childNodes[0];
+          playerName = nameNode ? nameNode.textContent.trim() : '';
+          const small = cell.querySelector('small');
+          if (small) {
+            const match = small.textContent.match(/ID: (.+)/);
+            studentId = match ? match[1].trim() : '';
+          }
+        }
+        // Score
+        const score = row.cells[2]?.textContent?.trim() || '';
+        csv += `"${rankCell}","${playerName}","${studentId}","${score}"\n`;
+      }
+      // Download as CSV
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'quiz_rankings.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
   }
 
 });
@@ -505,9 +587,9 @@ socket.on('teacher_joined_room', data => {
     // If quiz is already active, show the quiz running screen
     quizRunningScreen.classList.remove('d-none');
     
-    // Update header title to "Quiz in Progress"
+    // Update header title to "Quiz Results"
     if (typeof updateHeaderTitle === 'function') {
-      updateHeaderTitle("Quiz in Progress");
+      updateHeaderTitle("Quiz Results");
     }
     
     console.log('Joined an active quiz, waiting for question data...');
@@ -564,14 +646,14 @@ function showScreen(screenToShow) {
   quizHistoryScreen.classList.add('d-none');
   historyDetailScreen.classList.add('d-none');
   createRoomScreen.classList.add('d-none');
-  
+
   // Show the specified screen
   screenToShow.classList.remove('d-none');
-  
+
   // Update the header title based on the current screen
   let screenName = "";
   if (screenToShow === quizSelectionScreen) {
-    screenName = "Teacher Dashboard";
+    screenName = "Quiz Selection";
   } else if (screenToShow === waitingRoomScreen) {
     screenName = "Waiting Room";
   } else if (screenToShow === quizRunningScreen) {
@@ -579,23 +661,21 @@ function showScreen(screenToShow) {
   } else if (screenToShow === questionResultsScreen) {
     screenName = "Question Results";
   } else if (screenToShow === quizCompletionScreen) {
-    screenName = "Quiz Results";
+    screenName = "Quiz Result";
   } else if (screenToShow === quizHistoryScreen) {
     screenName = "Quiz History";
   } else if (screenToShow === historyDetailScreen) {
-    screenName = "Session Results";
+    screenName = "Quiz History Detail";
   } else if (screenToShow === createRoomScreen) {
-    screenName = "Create Quiz Room";
+    screenName = "Create Room";
   }
-  
+
   // Use the utility function if available, otherwise update directly
   if (typeof updateHeaderTitle === 'function') {
     updateHeaderTitle(screenName);
   } else {
     const headerTitle = document.getElementById('headerTitle');
-    if (headerTitle) {
-      headerTitle.textContent = screenName;
-    }
+    if (headerTitle) headerTitle.textContent = screenName;
   }
 }
 
