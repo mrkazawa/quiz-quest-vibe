@@ -1,0 +1,805 @@
+// Connect to socket.io server
+const socket = io();
+
+// DOM Elements
+const quizSelectionScreen = document.getElementById('quizSelectionScreen');
+const waitingRoomScreen = document.getElementById('waitingRoomScreen');
+const quizRunningScreen = document.getElementById('quizRunningScreen');
+const questionResultsScreen = document.getElementById('questionResultsScreen');
+const quizCompletionScreen = document.getElementById('quizCompletionScreen');
+const quizHistoryScreen = document.getElementById('quizHistoryScreen');
+const historyDetailScreen = document.getElementById('historyDetailScreen');
+const createRoomScreen = document.getElementById('createRoomScreen');
+
+const quizList = document.getElementById('quizList');
+const playersList = document.getElementById('playersList');
+const startQuizBtn = document.getElementById('startQuizBtn');
+const roomLink = document.getElementById('roomLink');
+const roomIdDisplay = document.getElementById('roomIdDisplay');
+const copyLinkBtn = document.getElementById('copyLinkBtn');
+const nextQuestionBtn = document.getElementById('nextQuestionBtn');
+const playerResultsTable = document.getElementById('playerResultsTable');
+const historyRankingsTable = document.getElementById('historyRankingsTable');
+const completionRankingsTable = document.getElementById('completionRankingsTable');
+const historyList = document.getElementById('historyList');
+const viewHistoryBtn = document.getElementById('viewHistoryBtn');
+const mainViewHistoryBtn = document.getElementById('mainViewHistoryBtn');
+const refreshHistoryBtn = document.getElementById('refreshHistoryBtn');
+const backToTeacherBtn = document.getElementById('backToTeacherBtn');
+const backToHistoryBtn = document.getElementById('backToHistoryBtn');
+
+// Quiz state
+let currentRoom = null;
+let currentQuestion = null;
+let timerInterval = null;
+let currentQuestionIndex = 0;
+let quizQuestions = [];
+
+function loadAvailableQuizzes() {
+  // Only use the correct quizList element
+  quizList.innerHTML = '';
+  fetch('/api/quizzes')
+    .then(response => {
+      if (!response.ok) throw new Error('Failed to fetch quizzes');
+      return response.json();
+    })
+    .then(quizzes => {
+      if (quizzes.length === 0) {
+        quizList.innerHTML = '<div class="alert alert-warning">No quizzes available</div>';
+        return;
+      }
+      quizQuestions = quizzes;
+      const table = document.createElement('table');
+      table.className = 'table table-hover mb-0';
+      const thead = document.createElement('thead');
+      thead.innerHTML = `
+        <tr class="table-light">
+          <th scope="col" style="width: 70%;">Quiz Details</th>
+          <th scope="col" style="width: 15%; text-align: center;">Questions</th>
+          <th scope="col" style="width: 15%; text-align: center;">Action</th>
+        </tr>
+      `;
+      const tbody = document.createElement('tbody');
+      quizzes.forEach(quiz => {
+        const row = document.createElement('tr');
+        row.className = 'quiz-row';
+        row.innerHTML = `
+          <td>
+            <h5 class="mb-1 text-primary fw-bold">${quiz.name}</h5>
+            ${quiz.description ? `<p class="mb-0 text-secondary">${quiz.description}</p>` : '<p class="mb-0 text-muted fst-italic">No description available</p>'}
+          </td>
+          <td class="text-center align-middle">
+            <span class="badge bg-info fs-6">${quiz.questionCount}</span>
+          </td>
+          <td class="text-center align-middle">
+            <button class="btn btn-success btn-sm create-room-btn" data-quiz-id="${quiz.id}" style="min-width: 100px;">
+              <i class="bi bi-plus-circle"></i> Create Room
+            </button>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+      table.appendChild(thead);
+      table.appendChild(tbody);
+      quizList.appendChild(table);
+      quizList.querySelectorAll('.create-room-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const quizId = btn.getAttribute('data-quiz-id');
+          createRoom(quizId);
+        });
+      });
+    })
+    .catch(error => {
+      console.error('Error fetching quizzes:', error);
+      quizList.innerHTML = `<div class="alert alert-danger">Error loading quizzes: ${error.message}</div>`;
+    });
+}
+
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadAvailableQuizzes();
+});
+
+// Attach Quiz History button event handler at top-level
+const showQuizHistoryBtn = document.getElementById('showQuizHistoryBtn');
+if (showQuizHistoryBtn) {
+  showQuizHistoryBtn.addEventListener('click', () => {
+    loadQuizHistory();
+    showScreen(quizHistoryScreen);
+    // Make sure the quiz completion screen is hidden
+    quizCompletionScreen.classList.add('d-none');
+  });
+}
+
+// Create a new room
+function createRoom(questionId) {
+  socket.emit('create_room', questionId);
+}
+
+// Room created event
+socket.on('room_created', data => {
+  const { roomId, questionId } = data;
+  currentRoom = roomId;
+  
+  // Update UI - use showScreen to ensure all other screens are hidden
+  showScreen(waitingRoomScreen);
+  
+  // Set room link and ID
+  const displayRoomId = roomId.replace('room_', '');
+  const fullUrl = `${window.location.origin}/student?room=${displayRoomId}`;
+  roomLink.value = fullUrl;
+  roomIdDisplay.textContent = displayRoomId;
+  
+  // Initialize empty player list
+  playersList.innerHTML = '<div class="text-center text-muted w-100">No players have joined yet</div>';
+  
+  // Initialize start button state (disabled since no players)
+  updateStartButtonState(0);
+});
+
+// Copy room link to clipboard
+copyLinkBtn.addEventListener('click', () => {
+  roomLink.select();
+  document.execCommand('copy');
+  
+  // Visual feedback
+  copyLinkBtn.innerHTML = '<i class="bi bi-check"></i> Copied!';
+  setTimeout(() => {
+    copyLinkBtn.innerHTML = '<i class="bi bi-clipboard"></i> Copy';
+  }, 2000);
+});
+
+// Player joined event
+socket.on('player_joined', data => {
+  const { players } = data;
+  
+  // Update players list
+  if (players.length > 0) {
+    playersList.innerHTML = '';
+    
+    players.forEach(player => {
+      const playerItem = document.createElement('span');
+      playerItem.className = 'badge bg-light text-dark border border-primary fs-6 px-3 py-2 me-2 mb-2';
+      playerItem.style.cssText = 'font-weight: 500; white-space: nowrap;';
+      playerItem.textContent = player.name;
+      playersList.appendChild(playerItem);
+    });
+  }
+  
+  // Update start button state
+  updateStartButtonState(players.length);
+});
+
+// Player left event
+socket.on('player_left', data => {
+  const { players } = data;
+  
+  // Update players list
+  if (players.length > 0) {
+    playersList.innerHTML = '';
+    
+    players.forEach(player => {
+      const playerItem = document.createElement('span');
+      playerItem.className = 'badge bg-light text-dark border border-primary fs-6 px-3 py-2 me-2 mb-2';
+      playerItem.style.cssText = 'font-weight: 500; white-space: nowrap;';
+      playerItem.textContent = player.name;
+      playersList.appendChild(playerItem);
+    });
+  } else {
+    playersList.innerHTML = '<div class="text-center text-muted w-100">No players have joined yet</div>';
+  }
+  
+  // Update start button state
+  updateStartButtonState(players.length);
+});
+
+// Start quiz event
+startQuizBtn.addEventListener('click', () => {
+  if (currentRoom && !startQuizBtn.disabled) {
+    socket.emit('start_quiz', currentRoom);
+  }
+});
+
+// Function to update start quiz button state based on player count
+function updateStartButtonState(playerCount) {
+  if (playerCount > 0) {
+    startQuizBtn.disabled = false;
+    startQuizBtn.classList.remove('btn-secondary');
+    startQuizBtn.classList.add('btn-success');
+    startQuizBtn.style.opacity = '1';
+    startQuizBtn.style.cursor = 'pointer';
+  } else {
+    startQuizBtn.disabled = true;
+    startQuizBtn.classList.remove('btn-success');
+    startQuizBtn.classList.add('btn-secondary');
+    startQuizBtn.style.opacity = '0.5';
+    startQuizBtn.style.cursor = 'not-allowed';
+  }
+}
+
+const backToSelectionBtn = document.getElementById('backToSelectionBtn');
+if (backToSelectionBtn) {
+  backToSelectionBtn.addEventListener('click', () => {
+    if (!currentRoom) return;
+    if (confirm('Are you sure you want to delete this room? All students will be disconnected.')) {
+      socket.emit('leave_room', currentRoom, true);  // true flag indicates delete the room
+      currentRoom = null;
+      waitingRoomScreen.classList.add('d-none');
+      quizCompletionScreen.classList.add('d-none'); // Hide the quiz completion screen
+      quizSelectionScreen.classList.remove('d-none');
+      loadAvailableQuizzes();
+    }
+  });
+}
+
+const backToDashboardBtn = document.getElementById('backToDashboardBtn');
+if (backToDashboardBtn) {
+  backToDashboardBtn.addEventListener('click', () => {
+    if (currentRoom) {
+      // Delete the room and disconnect all students
+      socket.emit('leave_room', currentRoom, true); // true = delete room
+      currentRoom = null;
+    }
+    showScreen(quizSelectionScreen);
+    loadAvailableQuizzes();
+  });
+}
+
+// Quiz started event
+socket.on('quiz_started', () => {
+  currentQuestionIndex = 0;
+  waitingRoomScreen.classList.add('d-none');
+});
+
+// New question event
+socket.on('new_question', data => {
+  const { question, options, timeLimit, questionId } = data;
+  currentQuestion = data;
+  
+  // Update UI
+  waitingRoomScreen.classList.add('d-none');
+  questionResultsScreen.classList.add('d-none');
+  quizRunningScreen.classList.remove('d-none');
+  
+  // Update header title to "Quiz in Progress"
+  if (typeof updateHeaderTitle === 'function') {
+    updateHeaderTitle("Quiz in Progress");
+  }
+  
+  // Set question text and options
+  document.getElementById('questionNumber').textContent = `Question ${currentQuestionIndex + 1}`;
+  document.getElementById('questionText').textContent = question;
+  document.getElementById('timerDisplay').textContent = `${timeLimit}s`;
+  
+  // Set options
+  for (let i = 0; i < 4; i++) {
+    const optionEl = document.getElementById(`option${i}`);
+    optionEl.textContent = options[i];
+    optionEl.className = `option-btn option-${i} btn w-100`;
+  }
+  
+  // Start timer
+  startTimer(timeLimit);
+});
+
+// Start timer function
+function startTimer(seconds) {
+  let timeLeft = seconds;
+  const timerBar = document.getElementById('timerBar');
+  const timerDisplay = document.getElementById('timerDisplay');
+  
+  // Clear any existing timer
+  if (timerInterval) {
+    clearInterval(timerInterval);
+  }
+  
+  // Reset timer bar
+  timerBar.style.width = '100%';
+  
+  // Update timer every 100ms for smooth animation
+  timerInterval = setInterval(() => {
+    timeLeft -= 0.1;
+    
+    const percentage = (timeLeft / seconds) * 100;
+    timerBar.style.width = `${percentage}%`;
+    timerDisplay.textContent = `${Math.ceil(timeLeft)}s`;
+    
+    if (timeLeft <= 0) {
+      clearInterval(timerInterval);
+    }
+  }, 100);
+}
+
+// Question ended event
+socket.on('question_ended', data => {
+  const { correctAnswer, playerAnswers } = data;
+  
+  // Clear timer
+  if (timerInterval) {
+    clearInterval(timerInterval);
+  }
+  
+  // Update UI
+  quizRunningScreen.classList.add('d-none');
+  questionResultsScreen.classList.remove('d-none');
+  
+  // Set results question and options
+  document.getElementById('resultsQuestionText').textContent = currentQuestion.question;
+  
+  // Mark correct answer
+  for (let i = 0; i < 4; i++) {
+    const optionEl = document.getElementById(`resultsOption${i}`);
+    
+    // Clear previous content and classes
+    optionEl.classList.remove('correct-answer');
+    optionEl.classList.remove('wrong-answer');
+    
+    if (i === correctAnswer) {
+      // Add special styling and icon for correct answer
+      optionEl.classList.add('correct-answer');
+      optionEl.innerHTML = `
+        <span class="correct-indicator">
+          <i class="bi bi-check-circle-fill" style="font-size: 1.5rem; margin-right: 10px; color: #ffffff;"></i>
+        </span>
+        ${currentQuestion.options[i]}
+      `;
+    } else {
+      // Just text for other options
+      optionEl.textContent = currentQuestion.options[i];
+    }
+  }
+  
+  // Populate player results table
+  playerResultsTable.innerHTML = '';
+  
+  playerAnswers.forEach(answer => {
+    const row = document.createElement('tr');
+    
+    // Determine result icon/text
+    const resultIcon = answer.isCorrect 
+      ? '<i class="bi bi-check-circle-fill text-success"></i>'
+      : '<i class="bi bi-x-circle-fill text-danger"></i>';
+    
+    // Determine answer text
+    const answerText = answer.answerId !== null 
+      ? currentQuestion.options[answer.answerId]
+      : 'No answer';
+    
+    row.innerHTML = `
+      <td>
+        ${answer.playerName}
+        <small class="d-block text-muted">ID: ${answer.studentId || 'N/A'}</small>
+      </td>
+      <td>${answerText}</td>
+      <td>${resultIcon}</td>
+      <td>${answer.score}</td>
+    `;
+    
+    playerResultsTable.appendChild(row);
+  });
+  
+  currentQuestionIndex++;
+});
+
+// Next question button
+nextQuestionBtn.addEventListener('click', () => {
+  if (currentRoom) {
+    socket.emit('next_question', currentRoom);
+  }
+});
+
+// Quiz ended event
+socket.on('quiz_ended', data => {
+  const { historyId, message } = data;
+  
+  // Update UI
+  quizRunningScreen.classList.add('d-none');
+  questionResultsScreen.classList.add('d-none');
+  
+  // Only show the completion screen if this wasn't triggered by room deletion
+  if (message !== 'Teacher ended the quiz') {
+    quizCompletionScreen.classList.remove('d-none');
+    
+    // Fetch and display the quiz results if we have a historyId
+    if (historyId) {
+      fetch(`/api/quiz-history/${historyId}`)
+        .then(response => response.json())
+        .then(quizData => {
+          // Set the quiz info
+          document.getElementById('completionQuizName').textContent = quizData.quizName;
+          
+          // Format the date
+          const date = new Date(quizData.dateCompleted);
+          const formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+          document.getElementById('completionDateTime').textContent = formattedDate;
+          
+          document.getElementById('completionPlayerCount').textContent = quizData.playerCount;
+          
+          // Populate rankings table
+          const rankingsTable = document.getElementById('completionRankingsTable');
+          rankingsTable.innerHTML = '';
+          
+          if (quizData.rankings && quizData.rankings.length > 0) {
+            quizData.rankings.forEach(player => {
+              const row = document.createElement('tr');
+              
+              row.innerHTML = `
+                <td>#${player.rank}</td>
+                <td>
+                  ${player.playerName}
+                  <small class="d-block text-muted">ID: ${player.studentId || 'N/A'}</small>
+                </td>
+                <td>${player.score}</td>
+              `;
+              
+              rankingsTable.appendChild(row);
+            });
+          } else {
+            rankingsTable.innerHTML = '<tr><td colspan="3" class="text-center">No results available</td></tr>';
+          }
+        })
+        .catch(error => {
+          console.error('Error loading quiz results:', error);
+          document.getElementById('completionRankingsTable').innerHTML = 
+            '<tr><td colspan="3" class="text-center">Failed to load results</td></tr>';
+        });
+    }
+  } else {
+    // If room was deleted, make sure completion screen stays hidden
+    quizCompletionScreen.classList.add('d-none');
+  }
+  
+  // Store the history ID in localStorage for later use
+  if (historyId) {
+    localStorage.setItem('lastQuizHistoryId', historyId);
+  }
+});
+
+
+
+// DOM content loaded event handler - add our new button handlers
+document.addEventListener('DOMContentLoaded', () => {
+  // Show Create Room screen when clicking the Create Room button
+  const showCreateRoomBtn = document.getElementById('showCreateRoomBtn');
+  
+  showCreateRoomBtn.addEventListener('click', () => {
+    // Load available quizzes and navigate to the create room screen
+    loadAvailableQuizzes();
+    showScreen(createRoomScreen);
+  });
+  
+  // Back to dashboard from create room screen
+  const backToTeacherFromCreateBtn = document.getElementById('backToTeacherFromCreateBtn');
+  if (backToTeacherFromCreateBtn) {
+    backToTeacherFromCreateBtn.addEventListener('click', () => {
+      showScreen(quizSelectionScreen);
+      loadAvailableQuizzes();
+    });
+  }
+  
+  // Refresh quizzes button
+  const refreshQuizzesBtn = document.getElementById('refreshQuizzesBtn');
+  if (refreshQuizzesBtn) {
+    refreshQuizzesBtn.addEventListener('click', loadAvailableQuizzes);
+  }
+
+});
+
+// Function to join an existing room
+function joinRoom(roomId) {
+  console.log('Attempting to join room:', roomId);
+  socket.emit('join_teacher_room', roomId);
+  currentRoom = roomId;
+}
+
+// Handle teacher joining existing room
+socket.on('teacher_joined_room', data => {
+  const { roomId, isActive, players } = data;
+  currentRoom = roomId;
+  
+  // Update UI to show waiting room or active quiz
+  quizSelectionScreen.classList.add('d-none');
+  
+  if (isActive) {
+    // If quiz is already active, show the quiz running screen
+    quizRunningScreen.classList.remove('d-none');
+    
+    // Update header title to "Quiz in Progress"
+    if (typeof updateHeaderTitle === 'function') {
+      updateHeaderTitle("Quiz in Progress");
+    }
+    
+    console.log('Joined an active quiz, waiting for question data...');
+    // The server will emit the current question separately
+  } else {
+    // Show waiting room
+    waitingRoomScreen.classList.remove('d-none');
+    
+    // Set room link and ID
+    const displayRoomId = roomId.replace('room_', '');
+    const fullUrl = `${window.location.origin}/student?room=${displayRoomId}`;
+    roomLink.value = fullUrl;
+    roomIdDisplay.textContent = displayRoomId;
+    
+    // Update player list
+    if (players && players.length > 0) {
+      playersList.innerHTML = '';
+      
+      players.forEach(player => {
+        const playerItem = document.createElement('span');
+        playerItem.className = 'badge bg-light text-dark border border-primary fs-6 px-3 py-2 me-2 mb-2';
+        playerItem.style.cssText = 'font-weight: 500; white-space: nowrap;';
+        playerItem.textContent = player.name;
+        playersList.appendChild(playerItem);
+      });
+    } else {
+      playersList.innerHTML = '<div class="text-center text-muted w-100">No players have joined yet</div>';
+    }
+    
+    // Update start button state based on current player count
+    updateStartButtonState(players ? players.length : 0);
+  }
+});
+
+
+
+// Listen for join errors
+socket.on('join_error', (message) => {
+  console.error('Join error:', message);
+  alert(`Error joining room: ${message}`);
+});
+
+// const logoHome = document.getElementById('logoHome');
+// No click event for logo in teacher view
+
+// Hide all screens except the one specified
+function showScreen(screenToShow) {
+  // Hide all screens
+  quizSelectionScreen.classList.add('d-none');
+  waitingRoomScreen.classList.add('d-none');
+  quizRunningScreen.classList.add('d-none');
+  questionResultsScreen.classList.add('d-none');
+  quizCompletionScreen.classList.add('d-none');
+  quizHistoryScreen.classList.add('d-none');
+  historyDetailScreen.classList.add('d-none');
+  createRoomScreen.classList.add('d-none');
+  
+  // Show the specified screen
+  screenToShow.classList.remove('d-none');
+  
+  // Update the header title based on the current screen
+  let screenName = "";
+  if (screenToShow === quizSelectionScreen) {
+    screenName = "Teacher Dashboard";
+  } else if (screenToShow === waitingRoomScreen) {
+    screenName = "Waiting Room";
+  } else if (screenToShow === quizRunningScreen) {
+    screenName = "Quiz in Progress";
+  } else if (screenToShow === questionResultsScreen) {
+    screenName = "Question Results";
+  } else if (screenToShow === quizCompletionScreen) {
+    screenName = "Quiz Results";
+  } else if (screenToShow === quizHistoryScreen) {
+    screenName = "Quiz History";
+  } else if (screenToShow === historyDetailScreen) {
+    screenName = "Session Results";
+  } else if (screenToShow === createRoomScreen) {
+    screenName = "Create Quiz Room";
+  }
+  
+  // Use the utility function if available, otherwise update directly
+  if (typeof updateHeaderTitle === 'function') {
+    updateHeaderTitle(screenName);
+  } else {
+    const headerTitle = document.getElementById('headerTitle');
+    if (headerTitle) {
+      headerTitle.textContent = screenName;
+    }
+  }
+}
+
+// Function to load quiz history
+function loadQuizHistory() {
+  const historyEmptyState = document.getElementById('historyEmptyState');
+  const historyTableContainer = document.getElementById('historyTableContainer');
+  const historyLoadingState = document.getElementById('historyLoadingState');
+  const historyTableBody = historyList;
+  
+  // Show loading state
+  historyEmptyState.classList.add('d-none');
+  historyTableContainer.classList.add('d-none');
+  historyLoadingState.classList.remove('d-none');
+  
+  fetch('/api/quiz-history')
+    .then(response => {
+      if (!response.ok) {
+        if (response.status === 403) {
+          throw new Error('You need to be logged in as a teacher to view quiz history');
+        }
+        throw new Error(`Error: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(historyItems => {
+      // Hide loading state
+      historyLoadingState.classList.add('d-none');
+      
+      if (historyItems.length === 0) {
+        // Show empty state, hide table
+        historyEmptyState.classList.remove('d-none');
+        historyTableContainer.classList.add('d-none');
+        return;
+      }
+      
+      // Show table, hide empty state
+      historyEmptyState.classList.add('d-none');
+      historyTableContainer.classList.remove('d-none');
+      
+      // Clear table body and populate with data
+      historyTableBody.innerHTML = '';
+      
+      historyItems.forEach(item => {
+        const row = document.createElement('tr');
+        row.className = 'history-row';
+        row.style.cursor = 'pointer';
+        
+        // Format the date
+        const date = new Date(item.dateCompleted);
+        const formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+        
+        // Clean up room ID - remove "room_" prefix if present
+        const displayRoomId = item.roomId.replace(/^room_/, '');
+        
+        row.innerHTML = `
+          <td>
+            <div class="d-flex align-items-center">
+              <div>
+                <h5 class="mb-1 text-primary fw-bold">${item.quizName}</h5>
+                <div class="text-muted">
+                  <small>Room ID: ${displayRoomId}</small><br>
+                  <small>Completed: ${formattedDate}</small>
+                </div>
+              </div>
+            </div>
+          </td>
+          <td class="text-center align-middle">
+            <span class="badge bg-success fs-6">${item.playerCount}</span>
+          </td>
+          <td class="text-center align-middle">
+            <button class="btn btn-success btn-sm view-history-btn" style="min-width: 110px;">
+              <i class="bi bi-eye"></i> View Results
+            </button>
+          </td>
+        `;
+        
+        // Store history ID as a data attribute for easy access
+        row.dataset.historyId = item.id;
+        
+        // Remove cursor pointer style since row is no longer clickable
+        row.style.cursor = 'default';
+        
+        // Add click handler only for the view button
+        const viewBtn = row.querySelector('.view-history-btn');
+        viewBtn.addEventListener('click', (event) => {
+          event.preventDefault();
+          loadHistoryDetail(item.id);
+        });
+        
+        historyTableBody.appendChild(row);
+      });
+    })
+    .catch(error => {
+      console.error('Error loading quiz history:', error);
+      
+      // Hide loading state and table
+      historyLoadingState.classList.add('d-none');
+      historyTableContainer.classList.add('d-none');
+      
+      // Show error in empty state
+      historyEmptyState.innerHTML = `
+        <div class="alert alert-danger">
+          <i class="bi bi-exclamation-triangle"></i> Failed to load history
+        </div>
+      `;
+      historyEmptyState.classList.remove('d-none');
+    });
+}
+
+// Function to load history detail
+function loadHistoryDetail(historyId) {
+  fetch(`/api/quiz-history/${historyId}`)
+    .then(response => response.json())
+    .then(historyDetail => {
+      // Set the quiz info
+      document.getElementById('historyQuizName').textContent = historyDetail.quizName;
+      
+      // Format the date
+      const date = new Date(historyDetail.dateCompleted);
+      const formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+      document.getElementById('historyDateTime').textContent = formattedDate;
+      
+      document.getElementById('historyPlayerCount').textContent = historyDetail.playerCount;
+      
+      // Populate rankings table
+      historyRankingsTable.innerHTML = '';
+      
+      if (historyDetail.rankings && historyDetail.rankings.length > 0) {
+        historyDetail.rankings.forEach(player => {
+          const row = document.createElement('tr');
+          
+          row.innerHTML = `
+            <td>#${player.rank}</td>
+            <td>
+              ${player.playerName}
+              <small class="d-block text-muted">ID: ${player.studentId || 'N/A'}</small>
+            </td>
+            <td>${player.score}</td>
+          `;
+          
+          historyRankingsTable.appendChild(row);
+        });
+      } else {
+        historyRankingsTable.innerHTML = '<tr><td colspan="3" class="text-center">No results available</td></tr>';
+      }
+      
+      // Show the history detail screen
+      showScreen(historyDetailScreen);
+    })
+    .catch(error => {
+      console.error('Error loading history detail:', error);
+      alert('Failed to load history details');
+    });
+}
+
+// Event listeners for history navigation
+if (viewHistoryBtn) {
+  viewHistoryBtn.addEventListener('click', () => {
+    loadQuizHistory();
+    showScreen(quizHistoryScreen);
+    
+    // Explicitly hide quiz completion screen
+    quizCompletionScreen.classList.add('d-none');
+    
+    // If we have a last history ID, just scroll to it without highlighting
+    const lastHistoryId = localStorage.getItem('lastQuizHistoryId');
+    if (lastHistoryId) {
+      setTimeout(() => {
+        const lastItem = document.querySelector(`[data-history-id="${lastHistoryId}"]`);
+        if (lastItem) {
+          lastItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 500);
+    }
+  });
+}
+
+refreshHistoryBtn.addEventListener('click', loadQuizHistory);
+
+backToTeacherBtn.addEventListener('click', () => {
+  showScreen(quizSelectionScreen);
+});
+
+backToHistoryBtn.addEventListener('click', () => {
+  showScreen(quizHistoryScreen);
+});
+
+// Main view history button functionality
+mainViewHistoryBtn.addEventListener('click', () => {
+  // Directly load and show the quiz history screen
+  loadQuizHistory();
+  showScreen(quizHistoryScreen);
+  // Make sure the quiz completion screen is hidden
+  quizCompletionScreen.classList.add('d-none');
+  
+  // If we have a last history ID, scroll to it without highlighting
+  const lastHistoryId = localStorage.getItem('lastQuizHistoryId');
+  if (lastHistoryId) {
+    setTimeout(() => {
+      const lastItem = document.querySelector(`[data-history-id="${lastHistoryId}"]`);
+      if (lastItem) {
+        lastItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 500);
+  }
+});

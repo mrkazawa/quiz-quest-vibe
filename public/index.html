@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz Quest</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Password input group styling */
+    .input-group .form-control.is-invalid {
+      border-right: 1px solid #dc3545;
+    }
+    
+    .input-group .form-control.is-invalid + .btn {
+      border-color: #dc3545;
+      background-color: #fff;
+    }
+    
+    .input-group .form-control.is-invalid + .btn:hover {
+      border-color: #dc3545;
+      background-color: #dc3545;
+      color: #fff;
+    }
+    
+    /* Normal state button styling */
+    .input-group .btn-outline-secondary {
+      background-color: #fff;
+      border-color: #6c757d;
+    }
+    
+    .input-group .btn-outline-secondary:hover {
+      background-color: #6c757d;
+      border-color: #6c757d;
+      color: #fff;
+    }
+    
+    /* Hide browser's native password reveal icon when focused or typing */
+    #teacherPassword:focus::-ms-reveal,
+    #teacherPassword:focus::-webkit-credentials-auto-fill-button {
+      display: none !important;
+    }
+    
+    /* Hide native password reveal icons completely when input has content */
+    #teacherPassword::-ms-reveal,
+    #teacherPassword::-webkit-credentials-auto-fill-button {
+      display: none !important;
+    }
+    
+    /* Also hide on Edge/IE */
+    #teacherPassword::-ms-clear {
+      display: none !important;
+    }
+    
+    /* Focus state */
+    .input-group .btn:focus {
+      box-shadow: none;
+      outline: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="homepage-container">
+    <div class="homepage-content">
+      <div class="text-center">
+        <img src="quiz-quest-logo.png" alt="Quiz Quest Logo" class="img-fluid mb-4" style="max-height: 120px;">
+        
+        <h2 class="mb-4">Welcome!</h2>
+        <p class="lead mb-4">Choose your role to get started:</p>
+        
+        <div class="d-grid gap-3 mx-auto home-buttons">
+          <button id="teacherBtn" class="btn btn-lg btn-primary">I'M A TEACHER</button>
+          <a href="/student" class="btn btn-lg btn-success">I'M A STUDENT</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Teacher Password Modal -->
+  <div class="modal fade" id="teacherPasswordModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-primary">
+          <h5 class="modal-title">Teacher Authentication</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>Please enter the teacher password to continue:</p>
+          <div class="mb-3">
+            <div class="input-group">
+              <input type="password" class="form-control" id="teacherPassword" placeholder="Enter password">
+              <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                <i class="bi bi-eye" id="eyeIcon"></i>
+              </button>
+            </div>
+            <div id="passwordError" class="invalid-feedback" style="display: none;">
+              Incorrect password. Please try again.
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="submitPassword">Submit</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Get the modal and button elements
+      const teacherBtn = document.getElementById('teacherBtn');
+      const passwordModal = new bootstrap.Modal(document.getElementById('teacherPasswordModal'));
+      const submitPasswordBtn = document.getElementById('submitPassword');
+      const teacherPassword = document.getElementById('teacherPassword');
+      const passwordError = document.getElementById('passwordError');
+      const togglePasswordBtn = document.getElementById('togglePassword');
+      const eyeIcon = document.getElementById('eyeIcon');
+
+      // Show modal when teacher button is clicked
+      teacherBtn.addEventListener('click', () => {
+        // Reset modal state
+        teacherPassword.value = '';
+        teacherPassword.type = 'password';
+        teacherPassword.classList.remove('is-invalid');
+        passwordError.style.display = 'none';
+        
+        // Reset eye icon completely
+        eyeIcon.className = 'bi bi-eye';
+        
+        passwordModal.show();
+      });
+
+      // Toggle password visibility
+      togglePasswordBtn.addEventListener('click', () => {
+        const type = teacherPassword.type === 'password' ? 'text' : 'password';
+        teacherPassword.type = type;
+        
+        // Toggle eye icon
+        if (type === 'password') {
+          eyeIcon.classList.remove('bi-eye-slash');
+          eyeIcon.classList.add('bi-eye');
+        } else {
+          eyeIcon.classList.remove('bi-eye');
+          eyeIcon.classList.add('bi-eye-slash');
+        }
+      });
+
+      // Handle submit button click
+      submitPasswordBtn.addEventListener('click', verifyPassword);
+      
+      // Also submit when Enter key is pressed in the password field
+      teacherPassword.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          verifyPassword();
+        }
+      });
+
+      // Show loading state
+      function setLoading(isLoading) {
+        if (isLoading) {
+          submitPasswordBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Verifying...';
+          submitPasswordBtn.disabled = true;
+        } else {
+          submitPasswordBtn.innerHTML = 'Submit';
+          submitPasswordBtn.disabled = false;
+        }
+      }
+
+      // Verify password with server
+      function verifyPassword() {
+        const password = teacherPassword.value.trim();
+        
+        if (!password) {
+          teacherPassword.classList.add('is-invalid');
+          passwordError.style.display = 'block';
+          return;
+        }
+
+        // Show loading state
+        setLoading(true);
+
+        // Send password to server for verification
+        fetch('/api/verify-teacher', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ password })
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            // Password is correct, redirect to teacher page
+            window.location.href = '/teacher';
+          } else {
+            // Show error
+            teacherPassword.classList.add('is-invalid');
+            passwordError.style.display = 'block';
+            setLoading(false);
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('An error occurred. Please try again.');
+          setLoading(false);
+        });
+      }
+
+      // Clear error state when typing
+      teacherPassword.addEventListener('input', () => {
+        teacherPassword.classList.remove('is-invalid');
+        passwordError.style.display = 'none';
+      });
+    });
+  </script>
+</body>
+</html>

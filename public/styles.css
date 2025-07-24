@@ -1,0 +1,864 @@
+body {
+  font-family: 'Roboto', 'Arial', sans-serif;
+  background-color: #ffffff; /* White background instead of grey */
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+.quiz-logo {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #333333; /* Dark text color for better visibility */
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* Make the logo look clickable */
+/* Remove pointer and hover effect from logo */
+.quiz-logo-clickable {
+  cursor: default;
+  transition: none;
+}
+
+.quiz-logo-clickable:hover {
+  transform: none;
+}
+
+img.quiz-logo-clickable {
+  cursor: default;
+}
+
+a.quiz-logo-clickable:hover img.quiz-logo-clickable {
+  transform: none;
+}
+
+/* Container styles with limited max-width */
+.container {
+  width: 92%; /* Slightly narrower for better consistency */
+  max-width: 900px; /* Medium size max-width to prevent excessive stretching */
+  padding: 0;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+/* Override Bootstrap card styles - Material Design approach */
+.card {
+  border: none !important;
+  box-shadow: none !important;
+  background-color: transparent !important;
+  margin-bottom: 16px;
+}
+
+.card-header {
+  border: none;
+  padding: 16px;
+  border-radius: 0 !important;
+  margin-bottom: 0;
+  border-bottom: 1px solid #eaeaea;
+  min-height: 60px; /* Ensure empty headers still have height */
+}
+
+
+
+.card-header.text-center {
+  background-color: white !important;
+}
+
+.card-body {
+  padding: 16px;
+  background-color: transparent;
+}
+
+/* Removes card outlines and borders */
+.card, .card-header, .card-body {
+  border-radius: 0 !important;
+}
+
+.option-btn {
+  height: 100px;
+  margin-bottom: 16px;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+  border-radius: 4px;
+  box-shadow: none;
+  border: none;
+  color: #ffffff; /* Ensure text is white on colored buttons */
+  max-width: 400px; /* Prevent excessive stretching on large screens */
+  margin-left: auto;
+  margin-right: auto;
+  cursor: pointer;
+}
+
+/* Remove hover effect from teacher view option buttons */
+.option-btn:hover {
+  /* No hover effect by default (teacher view) */
+  opacity: 1;
+}
+
+/* Explicitly disable hover effects for teacher view screens */
+#quizRunningScreen .option-btn:hover,
+#questionResultsScreen .option-btn:hover {
+  transform: none !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+  cursor: default !important;
+  color: #ffffff !important;
+}
+
+/* Explicitly maintain original colors for teacher view option buttons */
+#quizRunningScreen .option-0:hover,
+#questionResultsScreen .option-0:hover {
+  background-color: #e74c3c !important;
+  color: #ffffff !important;
+}
+
+#quizRunningScreen .option-1:hover,
+#questionResultsScreen .option-1:hover {
+  background-color: #3498db !important;
+  color: #ffffff !important;
+}
+
+#quizRunningScreen .option-2:hover,
+#questionResultsScreen .option-2:hover {
+  background-color: #f1c40f !important;
+  color: #ffffff !important;
+}
+
+#quizRunningScreen .option-3:hover,
+#questionResultsScreen .option-3:hover {
+  background-color: #2ecc71 !important;
+  color: #ffffff !important;
+}
+
+/* Only add hover effects for student view option buttons */
+#quizQuestionScreen .option-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  color: #ffffff; /* Keep text white */
+  cursor: pointer;
+}
+
+/* Specific hover effects for each option color in student view only */
+#quizQuestionScreen .option-0:hover {
+  background-color: #c0392b; /* Darker red */
+}
+
+#quizQuestionScreen .option-1:hover {
+  background-color: #2980b9; /* Darker blue */
+}
+
+#quizQuestionScreen .option-2:hover {
+  background-color: #f39c12; /* Darker yellow */
+}
+
+#quizQuestionScreen .option-3:hover {
+  background-color: #27ae60; /* Darker green */
+}
+
+.option-0 {
+  background-color: #e74c3c;
+}
+
+.option-1 {
+  background-color: #3498db;
+}
+
+.option-2 {
+  background-color: #f1c40f;
+}
+
+.option-3 {
+  background-color: #2ecc71;
+}
+
+.timer-bar {
+  height: 10px;
+  background-color: #3498db;
+  transition: width 0.1s linear;
+}
+
+.correct-answer {
+  border: 3px solid #fff !important;
+  position: relative;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.8) !important;
+  animation: pulse-border 2s infinite;
+}
+
+.correct-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+}
+
+/* Add a subtle pulsing animation to make the correct answer stand out */
+@keyframes pulse-border {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(255, 255, 255, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+  }
+}
+
+.wrong-answer {
+  background-color: #e74c3c !important;
+}
+
+.player-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.answer-feedback {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 30px 50px;
+  color: white;
+  border-radius: 10px;
+  font-size: 2rem;
+  font-weight: bold;
+  display: none;
+  animation: fadeInOut 3s;
+  z-index: 1000;
+}
+
+.streak-badge {
+  display: inline-block;
+  padding: 5px 10px;
+  background-color: #f39c12;
+  color: white;
+  border-radius: 20px;
+  font-weight: bold;
+  margin-left: 10px;
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.ranking-table {
+  width: 100%;
+}
+
+.ranking-table th, .ranking-table td {
+  padding: 10px;
+  text-align: left;
+}
+
+.ranking-table tr:nth-child(1) {
+  background-color: gold;
+  font-weight: bold;
+}
+
+.ranking-table tr:nth-child(2) {
+  background-color: silver;
+}
+
+.ranking-table tr:nth-child(3) {
+  background-color: #cd7f32; /* bronze */
+}
+
+.question-container {
+  min-height: 400px;
+}
+
+/* Style for section containers with flat material design */
+.section-container {
+  background-color: transparent;
+  padding: 16px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid #eaeaea;
+}
+
+/* Columns follow parent container margins */
+.col-md-8.offset-md-2 {
+  width: 100%;
+  max-width: none; /* Follow parent container width */
+  margin-left: 0;
+  margin-right: 0;
+  padding: 0;
+}
+
+/* Better column layout for the app */
+.row {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+/* Additional header styling for the app */
+h2, h3, h4 {
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+h2 {
+  font-size: 1.8rem;
+}
+
+/* Header styling - flat material design without separator line */
+.bg-primary, .bg-success {
+  width: 100%;
+  padding: 16px 16px 12px;
+  color: #000000; /* Black text color for maximum visibility */
+  text-align: center;
+  box-shadow: none;
+  font-weight: 600; /* Increased font weight */
+  background-color: transparent !important;
+  border-bottom: none; /* No border */
+  margin-bottom: 20px; /* Reduced margin */
+}
+
+/* Enhanced header styling for section titles */
+h1.bg-primary, h1.bg-success, h2.bg-primary, h2.bg-success {
+  font-size: 1.8rem;
+  font-weight: 600; /* Increased font weight */
+  letter-spacing: 0.5px;
+  border-bottom: none; /* No border */
+  padding-bottom: 12px;
+  color: #000000; /* Black text for maximum visibility */
+  margin-bottom: 20px;
+}
+
+/* Styling for list groups to match the new theme */
+.list-group {
+  border: none;
+  background-color: transparent;
+}
+
+.list-group-item {
+  border: none;
+  border-bottom: 1px solid #eaeaea;
+  padding: 16px;
+  margin-bottom: 0;
+  background-color: transparent;
+  transition: all 0.2s;
+}
+
+.list-group-item:hover {
+  background-color: #f5f5f5;
+}
+
+/* Remove card styling from nested elements - material design */
+.player-list.card-body {
+  border: none !important;
+  padding: 16px 0;
+  background-color: transparent !important;
+}
+
+/* Improve alert styles to match the new theme */
+.alert {
+  border-radius: 8px;
+  margin: 0 0 16px 0 !important;
+  width: 100% !important;
+  max-width: 900px;
+  box-sizing: border-box;
+  padding: 16px 28px !important;
+  font-size: 15px;
+  line-height: 1.6;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  text-align: left;
+}
+
+/* Override Bootstrap margin utilities for alerts */
+.alert.mb-4 {
+  margin: 0 0 16px 0 !important;
+  width: 100% !important;
+}
+
+/* Specific styling for the info alert */
+.alert-info {
+  margin: 0 0 16px 0 !important;
+  width: 100% !important;
+  box-sizing: border-box;
+  padding: 16px 28px !important;
+  background-color: #e3f2fd;
+  color: #0277bd;
+  text-align: left;
+}
+
+/* Success alert styling */
+.alert-success {
+  background-color: #e8f5e8;
+  color: #2e7d32;
+  margin: 0 0 16px 0 !important;
+  width: 100% !important;
+  box-sizing: border-box;
+  padding: 16px 28px !important;
+  text-align: left;
+}
+
+/* Warning alert styling */
+.alert-warning {
+  background-color: #fff3cd;
+  color: #856404;
+  margin: 0 0 16px 0 !important;
+  width: 100% !important;
+  box-sizing: border-box;
+  padding: 16px 28px !important;
+  text-align: left;
+}
+
+/* Danger alert styling */
+.alert-danger {
+  background-color: #f8d7da;
+  color: #721c24;
+  margin: 0 0 16px 0 !important;
+  width: 100% !important;
+  box-sizing: border-box;
+  padding: 16px 28px !important;
+  text-align: left;
+}
+
+/* Better form styling */
+input.form-control {
+  border-radius: 0;
+  border: 1px solid #ddd;
+  padding: 12px;
+  background-color: #fff;
+  box-shadow: none;
+  transition: border-color 0.2s;
+}
+
+input.form-control:focus {
+  border-color: #3498db;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+/* Button styling with material design - lightweight customization of Bootstrap */
+.btn {
+  border-radius: 4px;
+  padding: 10px 20px;
+  text-transform: uppercase;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  transition: all 0.2s;
+  box-shadow: none;
+}
+
+/* Use Bootstrap's button hover states but preserve text color */
+.btn-primary:hover, .btn-success:hover, .btn-danger:hover, .btn-info:hover {
+  color: #fff;
+}
+
+.btn-outline-primary:hover, .btn-outline-success:hover, .btn-outline-danger:hover, .btn-outline-info:hover {
+  color: #fff;
+}
+
+.btn-primary {
+  background-color: #3498db;
+  border-color: #3498db;
+  color: #fff;
+}
+
+/* Teacher and Student role buttons */
+.btn-teacher, .btn-student {
+  border-width: 2px;
+  font-weight: 500;
+  color: #fff;
+  text-shadow: 0 1px 1px rgba(0,0,0,0.2);
+}
+
+.btn-success {
+  background-color: #2ecc71;
+  border-color: #2ecc71;
+  color: #fff;
+}
+
+/* Danger button */
+.btn-danger {
+  background-color: #dc3545;
+  border-color: #dc3545;
+  color: #fff;
+}
+
+.btn-danger:hover {
+  background-color: #c82333;
+  border-color: #bd2130;
+  color: #fff;
+}
+
+.btn-outline-danger {
+  border-color: #dc3545;
+  color: #dc3545;
+}
+
+.btn-outline-danger:hover {
+  background-color: #dc3545;
+  color: #fff;
+}
+
+.btn-lg {
+  padding: 12px 24px;
+  font-size: 1.1rem;
+}
+
+/* Style for the quiz title next to logo */
+.quiz-title {
+  color: #333333;
+  font-weight: 600;
+  font-size: 1.8rem;
+  text-align: center;
+  margin: 0;
+  flex-grow: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+/* Homepage role selection buttons container */
+.home-buttons {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Make the homepage buttons full width */
+.home-buttons .btn {
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 15px 20px;
+}
+
+/* Homepage header with white background */
+.homepage-header {
+  background-color: white !important;
+  border: none;
+}
+
+/* Secondary and outline buttons */
+.btn-outline-secondary {
+  border-color: #6c757d;
+  color: #6c757d;
+}
+
+.btn-outline-secondary:hover {
+  background-color: #6c757d;
+  color: #fff;
+}
+
+.btn-secondary {
+  background-color: #6c757d;
+  border-color: #6c757d;
+  color: #fff;
+}
+
+.btn-secondary:hover {
+  background-color: #5a6268;
+  border-color: #545b62;
+  color: #fff;
+}
+
+/* Homepage - Full Height Layout */
+.homepage-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.homepage-content {
+  width: 100%;
+  max-width: 600px;
+}
+
+.home-buttons {
+  max-width: 400px;
+}
+
+/* Responsive adjustments for homepage */
+@media (max-width: 768px) {
+  .homepage-container {
+    padding: 15px;
+  }
+  
+  .homepage-content {
+    max-width: 500px;
+  }
+}
+
+@media (max-width: 576px) {
+  .homepage-container {
+    padding: 10px;
+  }
+  
+  .homepage-content {
+    max-width: 400px;
+  }
+  
+  .home-buttons {
+    max-width: 300px;
+  }
+}
+
+/* Responsive adjustments */
+@media (min-width: 1200px) {
+  .container, .alert {
+    padding: 0;
+    width: 92%; /* Consistent width on very large screens */
+    max-width: 900px; /* Hard cap on width */
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1199px) {
+  .container, .alert {
+    padding: 0;
+    width: 92%;
+    max-width: 900px;
+  }
+}
+
+@media (max-width: 767px) {
+  .container, .alert {
+    width: 100%;
+    padding: 0 8px;
+  }
+}
+
+/* Content section styling - material design */
+.content-section {
+  background-color: transparent;
+  margin-bottom: 24px;
+  padding: 16px 0;
+  border-bottom: 1px solid #eaeaea;
+}
+
+/* Header section styling */
+.header-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 0;
+  margin-bottom: 20px;
+  border-bottom: none; /* No border */
+}
+
+/* Fix for the header title alignment */
+.d-flex.justify-content-between.align-items-center {
+  padding: 0;
+}
+
+/* Improve top logo area */
+.logo-container {
+  display: flex;
+  align-items: center;
+  padding: 15px 0;
+}
+
+/* Make tables look better */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+}
+
+/* Material design for quiz containers */
+#quizQuestionScreen .card, #waitingRoomScreen .card {
+  background-color: transparent !important;
+  border-bottom: 1px solid #eaeaea !important;
+}
+
+/* Override any text-white classes in card headers */
+.card-header.text-white, .card-header.bg-primary, .card-header.bg-success {
+  color: #000000 !important; /* Force black text for all headers */
+}
+
+/* Ensure modal headers have visible text */
+.modal-header.bg-primary {
+  color: #000000 !important;
+  background-color: transparent !important;
+  border-bottom: none;
+}
+
+/* Responsive adjustments for logo and title */
+@media (max-width: 768px) {
+  .quiz-title {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .quiz-title {
+    font-size: 1.3rem;
+  }
+}
+
+/* Final Results Screen - Full Height Layout */
+.final-results-container {
+  min-height: 100vh; /* Full viewport height */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.final-results-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  max-width: 600px;
+  width: 100%;
+}
+
+.final-results-button {
+  margin-top: auto;
+  width: 100%;
+  max-width: 400px;
+  padding-bottom: 40px;
+}
+
+/* Responsive adjustments for final results */
+@media (max-width: 768px) {
+  .final-results-container {
+    min-height: 100vh;
+    padding: 15px;
+  }
+  
+  .final-results-button {
+    padding-bottom: 30px;
+  }
+}
+
+@media (max-width: 576px) {
+  .final-results-container {
+    min-height: 100vh;
+    padding: 10px;
+  }
+  
+  .final-results-button {
+    padding-bottom: 20px;
+  }
+}
+
+/* Join Quiz Screen - Full Height Layout */
+.join-quiz-container {
+  min-height: 100vh; /* Full viewport height */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+}
+
+.join-quiz-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  max-width: 800px;
+}
+
+.join-quiz-content form {
+  width: 100%;
+}
+
+.join-quiz-button {
+  width: 100%;
+  max-width: 800px;
+  margin-top: auto;
+  padding-bottom: 40px;
+}
+
+/* Responsive adjustments for join quiz */
+@media (max-width: 768px) {
+  .join-quiz-container {
+    min-height: 100vh;
+    padding: 15px;
+  }
+  
+  .join-quiz-button {
+    padding-bottom: 30px;
+  }
+}
+
+@media (max-width: 576px) {
+  .join-quiz-container {
+    min-height: 100vh;
+    padding: 10px;
+  }
+  
+  .join-quiz-button {
+    padding-bottom: 20px;
+  }
+}
+
+/* Question Results Screen - Full Height Layout */
+.question-results-container {
+  min-height: calc(100vh - 180px); /* Full height minus header and alert space */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.question-results-content {
+  text-align: center;
+  max-width: 600px;
+  width: 100%;
+}
+
+/* Responsive adjustments for question results */
+@media (max-width: 768px) {
+  .question-results-container {
+    min-height: calc(100vh - 160px);
+  }
+}
+
+@media (max-width: 576px) {
+  .question-results-container {
+    min-height: calc(100vh - 140px);
+  }
+}
+
+/* Horizontal logo styling for student view */
+.horizontal-logo {
+  max-height: 40px;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+/* Ensure horizontal logo container is centered */
+.horizontal-logo-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+/* Responsive adjustments for horizontal logo */
+@media (max-width: 768px) {
+  .horizontal-logo {
+    max-height: 35px;
+  }
+}
+
+@media (max-width: 576px) {
+  .horizontal-logo {
+    max-height: 30px;
+  }
+}

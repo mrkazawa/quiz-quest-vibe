@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz Quest - Teacher</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Title styling - dark brown color for all titles */
+    .quiz-title, #headerTitle {
+      color: #6c757d !important;
+      color: #6c757d !important;
+    }
+    
+    /* Quiz list table styling */
+    .quiz-row {
+      transition: all 0.2s ease-in-out;
+      cursor: pointer;
+    }
+    
+    .quiz-row:hover {
+      background-color: #f8f9fa !important;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      transform: translateY(-1px);
+    }
+    
+    .quiz-row:hover .create-room-btn {
+      background-color: #157347 !important;
+      border-color: #146c43 !important;
+      transform: scale(1.05);
+    }
+    
+    .create-room-btn {
+      transition: all 0.2s ease-in-out;
+      font-weight: 500;
+    }
+    
+    .quiz-row h5 {
+      color: #0d6efd !important;
+      font-weight: 600 !important;
+    }
+    
+    .quiz-row:hover h5 {
+      color: #0a58ca !important;
+    }
+    
+    /* Table header styling */
+    .table thead th {
+      background-color: #e9ecef !important;
+      font-weight: 600;
+      color: #495057;
+      border-bottom: 2px solid #dee2e6;
+    }
+    
+    /* Badge styling for question count */
+    .badge.bg-info {
+      background-color: #0dcaf0 !important;
+      color: #000 !important;
+      font-weight: 500;
+    }
+    
+    /* Modern back button styling */
+    #backToTeacherFromCreateBtn {
+      background-color: #6c757d !important;
+      border-color: #6c757d !important;
+      color: #fff !important;
+      transition: all 0.2s ease-in-out;
+    }
+    
+    #backToTeacherFromCreateBtn:hover {
+      background-color: #5c636a !important;
+      border-color: #565e64 !important;
+      color: #fff !important;
+      transform: translateX(-2px);
+    }
+    
+    #backToTeacherFromCreateBtn:focus {
+      box-shadow: 0 0 0 0.2rem rgba(108, 117, 125, 0.25) !important;
+    }
+    
+    /* Active Rooms table styling */
+    .room-row {
+      transition: all 0.2s ease-in-out;
+      cursor: pointer;
+    }
+    
+    .room-row:hover {
+      background-color: #f8f9fa !important;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      transform: translateY(-1px);
+    }
+    
+    .room-row:hover .join-room-btn {
+      background-color: #146c43 !important;
+      border-color: #13653f !important;
+      transform: scale(1.05);
+    }
+    
+    .room-id-badge {
+      background-color: #f8f9fa !important;
+      color: #495057 !important;
+      border: 1px solid #dee2e6 !important;
+      font-weight: 600;
+      padding: 6px 10px;
+      border-radius: 6px;
+    }
+    
+    .quiz-description {
+      color: #6c757d !important;
+      font-size: 0.85rem;
+      line-height: 1.3;
+    }
+    
+    .join-room-btn {
+      transition: all 0.2s ease-in-out;
+      font-weight: 500;
+      padding: 8px 16px;
+    }
+    
+    .players-count {
+      color: #28a745 !important;
+      font-weight: 600;
+    }
+    
+    .created-time {
+      color: #6c757d !important;
+      font-size: 0.85rem;
+    }
+    
+    .room-status {
+      font-size: 0.75rem !important;
+      padding: 4px 8px;
+    }
+    
+    /* Empty state styling */
+    .alert-warning {
+      border-radius: 8px;
+      border: 1px solid #ffc107;
+      background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+    }
+    
+    /* History table styling */
+    .history-row {
+      transition: all 0.2s ease-in-out;
+    }
+    
+    .history-row:hover {
+      background-color: #f8f9fa !important;
+    }
+    
+    .history-row:hover .view-history-btn {
+      background-color: #157347 !important;
+      border-color: #146c43 !important;
+      color: #fff !important;
+      transform: scale(1.05);
+    }
+    
+    .view-history-btn {
+      transition: all 0.2s ease-in-out;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    
+    .history-row h5 {
+      color: #0d6efd !important;
+      font-weight: 600 !important;
+    }
+    
+    .history-row:hover h5 {
+      color: #0a58ca !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="container mt-3">
+
+    <div class="row mb-3">
+      <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+          <div class="d-flex align-items-center" style="width: 25%;">
+            <img src="quiz-quest-logo.png" alt="Quiz Quest Logo" height="50" id="logoHome" class="quiz-logo-clickable" role="button">
+          </div>
+          <h2 class="mb-0 quiz-title" id="headerTitle" style="color: #654321;">Quiz Selection</h2>
+          <div style="width: 25%; text-align: right;">
+            <a href="/api/logout" class="btn btn-outline-danger ms-2"><i class="bi bi-box-arrow-right"></i> Logout</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quiz Selection Screen (now main dashboard) -->
+    <div id="quizSelectionScreen" class="row">
+      <div class="col-md-8 offset-md-2">
+        <div class="card">
+          <div class="card-body">
+            <div class="alert alert-info mb-4">
+              <i class="bi bi-info-circle"></i> Select a quiz to create a new room. Each question set becomes a room that students can join.
+            </div>
+            <div class="card mb-4">
+              <div class="card-body p-0">
+                <div id="quizList" class="list-group list-group-flush">
+                  <!-- Quiz list will be populated here -->
+                  <div class="text-center my-3">
+                    <div class="spinner-border text-primary" role="status">
+                      <span class="visually-hidden">Loading quizzes...</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="d-flex gap-2">
+              <button id="refreshQuizzesBtn" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-clockwise"></i> Refresh Quiz List
+              </button>
+              <button id="showQuizHistoryBtn" class="btn btn-info">
+                <i class="bi bi-clock-history"></i> Quiz History
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Waiting Room -->
+    <div id="waitingRoomScreen" class="row d-none">
+      <div class="col-md-8 offset-md-2">
+        <div class="card">
+          <div class="card-body">
+            <div class="alert alert-success mb-4">
+              <i class="bi bi-check-circle"></i> Room created successfully!
+            </div>
+
+            <div class="mb-4">
+              <h4 style="color: #6c757d;">Room Information</h4>
+              <p>Share this link with your students:</p>
+              <div class="input-group">
+                <input type="text" id="roomLink" class="form-control" readonly style="background-color: #e3f2fd; border-color: #2196f3; color: #1976d2;">
+                <button id="copyLinkBtn" class="btn btn-outline-secondary">
+                  <i class="bi bi-clipboard"></i> Copy
+                </button>
+              </div>
+              <small class="text-muted">Students can also join by entering room ID: <span id="roomIdDisplay" class="fw-bold"></span></small>
+            </div>
+
+            <div class="mb-4">
+              <h4 style="color: #6c757d;">Players</h4>
+              <div class="card">
+                <div class="card-body player-list">
+                  <div id="playersList" class="d-flex flex-wrap gap-2">
+                    <div class="text-center text-muted w-100">No players have joined yet</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row g-2">
+              <div class="col-auto">
+                <button id="backToDashboardBtn" class="btn btn-secondary">
+                  <i class="bi bi-arrow-left"></i> Back
+                </button>
+              </div>
+              <div class="col-auto">
+                <button id="startQuizBtn" class="btn btn-success">
+                  <i class="bi bi-play-fill"></i> Start Quiz
+                </button>
+              </div>
+              <div class="col-auto">
+                <!-- Delete Room button removed -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quiz Running Screen -->
+    <div id="quizRunningScreen" class="row d-none">
+      <div class="col-md-8 offset-md-2">
+        <div class="card">
+          <div class="card-header bg-primary">
+            <div class="d-flex justify-content-between align-items-center">
+              <h4 id="questionNumber">Question 1</h4>
+              <div id="timerDisplay" class="h3">20s</div>
+            </div>
+            <div class="progress">
+              <div id="timerBar" class="timer-bar progress-bar" style="width: 100%"></div>
+            </div>
+          </div>
+          <div class="card-body">
+            <h3 id="questionText" class="mb-4 text-center"></h3>
+
+            <div class="row mb-4">
+              <div class="col-md-6 mb-2">
+                <div id="option0" class="option-btn option-0 btn text-white w-100"></div>
+              </div>
+              <div class="col-md-6 mb-2">
+                <div id="option1" class="option-btn option-1 btn text-white w-100"></div>
+              </div>
+              <div class="col-md-6 mb-2">
+                <div id="option2" class="option-btn option-2 btn text-white w-100"></div>
+              </div>
+              <div class="col-md-6 mb-2">
+                <div id="option3" class="option-btn option-3 btn text-white w-100"></div>
+              </div>
+            </div>
+
+            <div class="alert alert-info">
+              <i class="bi bi-info-circle"></i> You are in teacher view. Students are answering this question.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Question Results Screen -->
+    <div id="questionResultsScreen" class="row d-none">
+      <div class="col-md-8 offset-md-2">
+        <div class="card">
+          <div class="card-body">
+            <h3 id="resultsQuestionText" class="mb-4 text-center"></h3>
+
+            <div class="row mb-4">
+              <div class="col-md-6 mb-2">
+                <div id="resultsOption0" class="option-btn option-0 btn text-white w-100"></div>
+              </div>
+              <div class="col-md-6 mb-2">
+                <div id="resultsOption1" class="option-btn option-1 btn text-white w-100"></div>
+              </div>
+              <div class="col-md-6 mb-2">
+                <div id="resultsOption2" class="option-btn option-2 btn text-white w-100"></div>
+              </div>
+              <div class="col-md-6 mb-2">
+                <div id="resultsOption3" class="option-btn option-3 btn text-white w-100"></div>
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <h4>Player Results</h4>
+              <div class="table-responsive">
+                <table class="table table-striped">
+                  <thead>
+                    <tr>
+                      <th>Player</th>
+                      <th>Answer</th>
+                      <th>Result</th>
+                      <th>Score</th>
+                    </tr>
+                  </thead>
+                  <tbody id="playerResultsTable">
+                    <!-- Results will be populated here -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="d-grid">
+              <button id="nextQuestionBtn" class="btn btn-lg btn-primary">
+                <i class="bi bi-arrow-right"></i> Next Question
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quiz Completion Notice Screen -->
+    <div id="quizCompletionScreen" class="row d-none">
+      <div class="col-md-8 offset-md-2">
+        <div class="card">
+          <div class="card-body">
+            <div class="alert alert-success mb-4">
+              <i class="bi bi-check-circle-fill"></i> Quiz has ended successfully! Results have been saved to history.
+            </div>
+            
+            <div class="mb-3">
+              <h4 id="completionQuizName">Quiz Name</h4>
+              <p class="text-muted">
+                <span id="completionDateTime"></span> • 
+                <span id="completionPlayerCount">0</span> players
+              </p>
+            </div>
+
+            <div class="mb-4">
+              <h4>Final Rankings</h4>
+              <div class="table-responsive">
+                <table class="table ranking-table">
+                  <thead>
+                    <tr>
+                      <th>Rank</th>
+                      <th>Player</th>
+                      <th>Score</th>
+                    </tr>
+                  </thead>
+                  <tbody id="completionRankingsTable">
+                    <!-- Rankings will be populated here -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="d-grid">
+              <a href="/teacher" class="btn btn-lg btn-primary">
+                <i class="bi bi-arrow-repeat"></i> Start New Quiz
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Quiz History Screen -->
+    <div id="quizHistoryScreen" class="row d-none">
+      <div class="col-md-8 offset-md-2">
+        <div class="card">
+          <div class="card-body">
+            <div class="alert alert-info mb-4">
+              <i class="bi bi-info-circle"></i> Click on a quiz session to view detailed results.
+            </div>
+            
+            <!-- Container for empty state -->
+            <div id="historyEmptyState" class="mb-4 d-none">
+              <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle"></i> No quiz history available
+              </div>
+            </div>
+            
+            <!-- Table container for when there is data -->
+            <div id="historyTableContainer" class="card mb-4 d-none">
+              <div class="card-body p-0">
+                <div class="table-responsive">
+                  <table class="table table-hover mb-0">
+                    <thead>
+                      <tr class="table-light">
+                        <th scope="col" style="width: 70%;">Quiz Session</th>
+                        <th scope="col" style="width: 15%; text-align: center;">Players</th>
+                        <th scope="col" style="width: 15%; text-align: center;">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody id="historyList">
+                      <!-- History rows will be injected here -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Loading state -->
+            <div id="historyLoadingState" class="card mb-4">
+              <div class="card-body text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                  <span class="visually-hidden">Loading history...</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="d-flex gap-2">
+              <button id="backToTeacherBtn" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back
+              </button>
+              
+              <button id="refreshHistoryBtn" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-clockwise"></i> Refresh History
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Create Room Screen -->
+    <div id="createRoomScreen" class="row d-none">
+      <div class="col-md-8 offset-md-2">
+        <div class="card">
+          <div class="card-body">
+            <div class="alert alert-info mb-4">
+              <i class="bi bi-info-circle"></i> Select a quiz to create a new room. Each question set becomes a room that students can join.
+            </div>
+            
+            <div class="card mb-4">
+              <div class="card-body p-0">
+                <div id="createRoomQuizList" class="list-group list-group-flush">
+                  <!-- Quiz list will be populated here -->
+                  <div class="text-center my-3">
+                    <div class="spinner-border text-primary" role="status">
+                      <span class="visually-hidden">Loading quizzes...</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="d-flex gap-2">
+              <button id="backToTeacherFromCreateBtn" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back
+              </button>
+              
+              <button id="refreshQuizzesBtn" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-clockwise"></i> Refresh Quiz List
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- History Detail Screen -->
+    <div id="historyDetailScreen" class="row d-none">
+      <div class="col-md-8 offset-md-2">
+        <div class="card">
+          <div class="card-body">
+            <div class="mb-3">
+              <h4 id="historyQuizName">Quiz Name</h4>
+              <p class="text-muted">
+                <span id="historyDateTime">Date and Time</span> • 
+                <span id="historyPlayerCount">0</span> players
+              </p>
+            </div>
+
+            <div class="mb-4">
+              <h4>Player Rankings</h4>
+              <div class="table-responsive">
+                <table class="table ranking-table">
+                  <thead>
+                    <tr>
+                      <th>Rank</th>
+                      <th>Player</th>
+                      <th>Score</th>
+                    </tr>
+                  </thead>
+                  <tbody id="historyRankingsTable">
+                    <!-- Rankings will be populated here -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="d-flex gap-2">
+              <button id="backToHistoryBtn" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="utils.js"></script>
+  <script src="teacher.js"></script>
+</body>
+</html>
