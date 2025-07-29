@@ -183,6 +183,16 @@
     </style>
   </head>
   <body>
+    <script>
+      // Ensure hash is set to #dashboard on first load if missing
+      if (
+        !window.location.hash ||
+        window.location.hash === "#" ||
+        window.location.hash === ""
+      ) {
+        window.location.hash = "#dashboard";
+      }
+    </script>
     <div class="container mt-3">
       <div class="row mb-3">
         <div class="col-12">

@@ -159,17 +159,77 @@ document.addEventListener("DOMContentLoaded", () => {
       URL.revokeObjectURL(url);
     });
   }
-  loadAvailableQuizzes();
+
+  // Hash-based routing: render correct screen on load/refresh
+  function renderScreenFromHash() {
+    const hash = window.location.hash;
+    if (hash === "#dashboard") {
+      showScreen(quizSelectionScreen);
+      loadAvailableQuizzes();
+    } else if (/^#([\w-]+)\/waiting_room$/.test(hash)) {
+      showScreen(waitingRoomScreen);
+      // Restore room info if available
+      const match = hash.match(/^#([\w-]+)\/waiting_room$/);
+      if (match) {
+        const displayRoomId = match[1];
+        const roomId = localStorage.getItem("lastCreatedRoomId");
+        if (roomId && roomId.replace("room_", "") === displayRoomId) {
+          // Automatically rejoin the room as teacher after refresh
+          socket.emit("join_teacher_room", roomId);
+          // UI setup will be handled by teacher_joined_room event
+        } else {
+          // Clear fields if no matching room
+          roomLink.value = "";
+          roomIdDisplay.textContent = "";
+          const qrContainer = document.getElementById("qrCodeContainer");
+          if (qrContainer) qrContainer.innerHTML = "";
+        }
+      }
+    } else {
+      switch (hash) {
+        case "#waiting-room":
+          showScreen(waitingRoomScreen);
+          break;
+        case "#quiz-running":
+          showScreen(quizRunningScreen);
+          break;
+        case "#question-results":
+          showScreen(questionResultsScreen);
+          break;
+        case "#quiz-completion":
+          showScreen(quizCompletionScreen);
+          break;
+        case "#history":
+          loadQuizHistory();
+          showScreen(quizHistoryScreen);
+          break;
+        case "#quiz-history":
+          loadQuizHistory();
+          showScreen(quizHistoryScreen);
+          break;
+        case "#history-detail":
+          showScreen(historyDetailScreen);
+          break;
+        case "#create-room":
+          showScreen(createRoomScreen);
+          break;
+        default:
+          showScreen(quizSelectionScreen);
+          loadAvailableQuizzes();
+      }
+    }
+  }
+
+  window.addEventListener("hashchange", renderScreenFromHash);
+  renderScreenFromHash();
 });
 
 // Attach Quiz History button event handler at top-level
 const showQuizHistoryBtn = document.getElementById("showQuizHistoryBtn");
 if (showQuizHistoryBtn) {
   showQuizHistoryBtn.addEventListener("click", () => {
-    loadQuizHistory();
-    showScreen(quizHistoryScreen);
-    // Make sure the quiz completion screen is hidden
-    quizCompletionScreen.classList.add("d-none");
+    window.location.hash = "#history";
+    // The hashchange event will trigger renderScreenFromHash
   });
 }
 
@@ -183,11 +243,17 @@ socket.on("room_created", (data) => {
   const { roomId, questionId } = data;
   currentRoom = roomId;
 
+  // Persist last created room ID for refresh
+  localStorage.setItem("lastCreatedRoomId", roomId);
+
+  // Set hash to #<room_id>/waiting_room for navigation and refresh persistence
+  const displayRoomId = roomId.replace("room_", "");
+  window.location.hash = `#${displayRoomId}/waiting_room`;
+
   // Update UI - use showScreen to ensure all other screens are hidden
   showScreen(waitingRoomScreen);
 
   // Set room link and ID
-  const displayRoomId = roomId.replace("room_", "");
   const fullUrl = `${window.location.origin}/student?room=${displayRoomId}`;
   roomLink.value = fullUrl;
   roomIdDisplay.textContent = displayRoomId;
@@ -330,13 +396,23 @@ if (backToSelectionBtn) {
 const backToDashboardBtn = document.getElementById("backToDashboardBtn");
 if (backToDashboardBtn) {
   backToDashboardBtn.addEventListener("click", () => {
-    if (currentRoom) {
-      // Delete the room and disconnect all students
-      socket.emit("leave_room", currentRoom, true); // true = delete room
-      currentRoom = null;
+    const hash = window.location.hash;
+    // Only show alert if in waiting room and there is a current room
+    if (/^#[\w-]+\/waiting_room$/.test(hash) && currentRoom) {
+      if (
+        confirm(
+          "Going back will delete the room and disconnect all students. Are you sure?"
+        )
+      ) {
+        // Delete the room via socket
+        socket.emit("leave_room", currentRoom, true);
+        currentRoom = null;
+        window.location.hash = "#dashboard";
+      }
+      // If not confirmed, do nothing
+    } else {
+      window.location.hash = "#dashboard";
     }
-    showScreen(quizSelectionScreen);
-    loadAvailableQuizzes();
   });
 }
 
@@ -683,6 +759,31 @@ socket.on("teacher_joined_room", (data) => {
     roomLink.value = fullUrl;
     roomIdDisplay.textContent = displayRoomId;
 
+    // Restore QR code after refresh
+    setTimeout(() => {
+      const qrContainer = document.getElementById("qrCodeContainer");
+      if (qrContainer) {
+        qrContainer.innerHTML = "";
+        if (typeof QRCode !== "undefined") {
+          new QRCode(qrContainer, {
+            text: fullUrl,
+            width: 256,
+            height: 256,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H,
+          });
+          qrContainer.style.display = "flex";
+          qrContainer.style.justifyContent = "center";
+          qrContainer.style.alignItems = "center";
+          qrContainer.style.margin = "0 auto";
+        } else {
+          qrContainer.innerHTML =
+            '<div class="text-danger">QR code library not loaded</div>';
+        }
+      }
+    }, 100);
+
     // Update player list
     if (players && players.length > 0) {
       playersList.innerHTML = "";
@@ -925,31 +1026,14 @@ function loadHistoryDetail(historyId) {
 // Event listeners for history navigation
 if (viewHistoryBtn) {
   viewHistoryBtn.addEventListener("click", () => {
-    loadQuizHistory();
-    showScreen(quizHistoryScreen);
-
-    // Explicitly hide quiz completion screen
-    quizCompletionScreen.classList.add("d-none");
-
-    // If we have a last history ID, just scroll to it without highlighting
-    const lastHistoryId = localStorage.getItem("lastQuizHistoryId");
-    if (lastHistoryId) {
-      setTimeout(() => {
-        const lastItem = document.querySelector(
-          `[data-history-id="${lastHistoryId}"]`
-        );
-        if (lastItem) {
-          lastItem.scrollIntoView({ behavior: "smooth", block: "center" });
-        }
-      }, 500);
-    }
+    window.location.hash = "#history";
   });
 }
 
 refreshHistoryBtn.addEventListener("click", loadQuizHistory);
 
 backToTeacherBtn.addEventListener("click", () => {
-  showScreen(quizSelectionScreen);
+  window.location.hash = "#dashboard";
 });
 
 backToHistoryBtn.addEventListener("click", () => {
@@ -975,5 +1059,26 @@ mainViewHistoryBtn.addEventListener("click", () => {
         lastItem.scrollIntoView({ behavior: "smooth", block: "center" });
       }
     }, 500);
+  }
+});
+
+window.addEventListener("beforeunload", function (e) {
+  const hash = window.location.hash;
+  if (/^#[\w-]+\/waiting_room$/.test(hash)) {
+    e.preventDefault();
+    e.returnValue =
+      "Refreshing will delete the room and disconnect students. Are you sure?";
+    return e.returnValue;
+  }
+});
+window.addEventListener("unload", function () {
+  const hash = window.location.hash;
+  if (/^#[\w-]+\/waiting_room$/.test(hash)) {
+    // Delete the room on refresh/navigation away
+    const roomId = localStorage.getItem("lastCreatedRoomId");
+    if (roomId) {
+      socket.emit("leave_room", roomId, true); // true = delete room
+      localStorage.removeItem("lastCreatedRoomId");
+    }
   }
 });

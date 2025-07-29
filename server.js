@@ -607,7 +607,8 @@ app.post("/api/verify-teacher", (req, res) => {
   if (password === correctPassword) {
     // Set session variable to mark user as authenticated teacher
     req.session.isTeacher = true;
-    res.json({ success: true });
+    // Return redirect URL for hash-based dashboard
+    res.json({ success: true, redirect: "/teacher#dashboard" });
   } else {
     res.status(401).json({ success: false, message: "Incorrect password" });
   }
