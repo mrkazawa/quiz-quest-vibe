@@ -192,6 +192,31 @@ socket.on("room_created", (data) => {
   roomLink.value = fullUrl;
   roomIdDisplay.textContent = displayRoomId;
 
+  // Generate QR code for the room link
+  setTimeout(() => {
+    const qrContainer = document.getElementById("qrCodeContainer");
+    if (qrContainer) {
+      qrContainer.innerHTML = "";
+      if (typeof QRCode !== "undefined") {
+        new QRCode(qrContainer, {
+          text: fullUrl,
+          width: 256,
+          height: 256,
+          colorDark: "#000000",
+          colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.H,
+        });
+        qrContainer.style.display = "flex";
+        qrContainer.style.justifyContent = "center";
+        qrContainer.style.alignItems = "center";
+        qrContainer.style.margin = "0 auto";
+      } else {
+        qrContainer.innerHTML =
+          '<div class="text-danger">QR code library not loaded</div>';
+      }
+    }
+  }, 100);
+
   // Initialize empty player list
   playersList.innerHTML =
     '<div class="text-center text-muted w-100">No players have joined yet</div>';
