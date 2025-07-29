@@ -156,6 +156,11 @@ io.on("connection", (socket) => {
       socket.emit("join_error", "Room does not exist");
       return;
     }
+    // Prevent joining if quiz is already started
+    if (rooms[roomId].isActive) {
+      socket.emit("join_error", "Quiz already started. Cannot join this room.");
+      return;
+    }
 
     // Add player to the room
     socket.join(roomId);
