@@ -131,9 +131,15 @@ io.on("connection", (socket) => {
 
     const roomId = roomCode;
 
+    // Convert questions array to a map by id for consistency
+    const questionsMap = {};
+    questionSet.questions.forEach((q) => {
+      questionsMap[q.id] = q;
+    });
     rooms[roomId] = {
       quizId: quizId,
-      questions: questionSet.questions,
+      questions: questionsMap, // now a map
+      questionOrder: questionSet.questions.map((q) => q.id), // preserve order
       players: {},
       isActive: false,
       currentQuestionIndex: 0,
@@ -241,11 +247,11 @@ io.on("connection", (socket) => {
     rooms[roomId].isActive = true;
     rooms[roomId].currentQuestionIndex = 0;
 
-    // Get the current question
-    const currentQuestionObj =
-      rooms[roomId].questions[rooms[roomId].currentQuestionIndex];
+    // Get the current questionId from order
+    const currentQuestionId =
+      rooms[roomId].questionOrder[rooms[roomId].currentQuestionIndex];
+    const currentQuestionObj = rooms[roomId].questions[currentQuestionId];
 
-    // Send the first question to all players in the room
     io.to(roomId).emit("quiz_started", { roomId });
     io.to(roomId).emit("new_question", {
       question: currentQuestionObj.question,
@@ -260,8 +266,6 @@ io.on("connection", (socket) => {
     const timer = setTimeout(() => {
       endQuestion(roomId);
     }, currentQuestionObj.timeLimit * 1000);
-
-    // Store the timer reference
     rooms[roomId].timer = timer;
   });
 
@@ -278,8 +282,9 @@ io.on("connection", (socket) => {
       return;
     }
 
-    const currentQuestionIdx = rooms[roomId].currentQuestionIndex;
-    const currentQuestionObj = rooms[roomId].questions[currentQuestionIdx];
+    const currentQuestionId =
+      rooms[roomId].questionOrder[rooms[roomId].currentQuestionIndex];
+    const currentQuestionObj = rooms[roomId].questions[currentQuestionId];
     const player = rooms[roomId].players[socket.id];
 
     // Calculate time taken (could be improved with more accurate timing)
@@ -330,7 +335,7 @@ io.on("connection", (socket) => {
     // Check if all players have answered
     const allPlayersAnswered = Object.values(rooms[roomId].players).every(
       (p) => {
-        return p.answers.length === rooms[roomId].currentQuestionIndex + 1;
+        return p.answers.some((a) => a.questionId === currentQuestionObj.id);
       }
     );
 
@@ -506,8 +511,9 @@ io.on("connection", (socket) => {
 function endQuestion(roomId) {
   if (!rooms[roomId]) return;
 
-  const currentQuestionIdx = rooms[roomId].currentQuestionIndex;
-  const currentQuestionObj = rooms[roomId].questions[currentQuestionIdx];
+  const currentQuestionId =
+    rooms[roomId].questionOrder[rooms[roomId].currentQuestionIndex];
+  const currentQuestionObj = rooms[roomId].questions[currentQuestionId];
 
   // Ensure all players have an answer entry for this question (even if they didn't answer)
   Object.values(rooms[roomId].players).forEach((player) => {
@@ -563,16 +569,18 @@ function moveToNextQuestion(roomId) {
   rooms[roomId].currentQuestionIndex++;
 
   // Check if we've reached the end of the quiz
-  if (rooms[roomId].currentQuestionIndex >= rooms[roomId].questions.length) {
+  if (
+    rooms[roomId].currentQuestionIndex >= rooms[roomId].questionOrder.length
+  ) {
     endQuiz(roomId);
     return;
   }
 
-  // Get the next question
-  const nextQuestionObj =
-    rooms[roomId].questions[rooms[roomId].currentQuestionIndex];
+  // Get the next question by id
+  const nextQuestionId =
+    rooms[roomId].questionOrder[rooms[roomId].currentQuestionIndex];
+  const nextQuestionObj = rooms[roomId].questions[nextQuestionId];
 
-  // Send the next question to all players in the room
   io.to(roomId).emit("new_question", {
     question: nextQuestionObj.question,
     options: nextQuestionObj.options,
@@ -590,8 +598,6 @@ function moveToNextQuestion(roomId) {
   const timer = setTimeout(() => {
     endQuestion(roomId);
   }, nextQuestionObj.timeLimit * 1000);
-
-  // Store the timer reference
   rooms[roomId].timer = timer;
 }
 
@@ -648,16 +654,12 @@ const requireTeacherAuth = (req, res, next) => {
   }
 };
 
-// Define routes
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
-
 // Teacher route protected by authentication middleware
 app.get("/teacher", requireTeacherAuth, (req, res) => {
   res.sendFile(path.join(__dirname, "public", "teacher.html"));
 });
 
+// Student route just serves the HTML file
 app.get("/student", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "student.html"));
 });
@@ -769,4 +771,3 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
-console.log("Active rooms:", Object.keys(rooms));

@@ -231,6 +231,9 @@ socket.on("joined_room", (data) => {
 // Join error event
 socket.on("join_error", (message) => {
   alert(`Error joining room: ${message}`);
+  // Redirect to dashboard after alert
+  window.location.hash = "#dashboard";
+  showDashboardScreen();
 });
 
 // Player joined event
