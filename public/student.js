@@ -34,10 +34,20 @@ let currentStreak = 0;
 let optionsLocked = false;
 
 // Check URL for room ID
+// Restore form values from localStorage if present
+const savedName = localStorage.getItem("studentName");
+const savedStudentId = localStorage.getItem("studentId");
+const savedRoomId = localStorage.getItem("studentRoomId");
+if (savedName) playerNameInput.value = savedName;
+if (savedStudentId) studentIdInput.value = savedStudentId;
+if (savedRoomId) roomIdInput.value = savedRoomId;
+
+// Check URL for room ID (overrides localStorage)
 const urlParams = new URLSearchParams(window.location.search);
 const roomFromUrl = urlParams.get("room");
 if (roomFromUrl) {
   roomIdInput.value = roomFromUrl;
+  localStorage.setItem("studentRoomId", roomFromUrl);
 }
 
 // Handle join form submission
@@ -47,6 +57,11 @@ joinForm.addEventListener("submit", (e) => {
   const playerName = playerNameInput.value.trim();
   const studentId = studentIdInput.value.trim();
   let roomId = roomIdInput.value.trim();
+
+  // Save to localStorage
+  localStorage.setItem("studentName", playerName);
+  localStorage.setItem("studentId", studentId);
+  localStorage.setItem("studentRoomId", roomId);
 
   // Check if all fields are filled
   if (!playerName || !studentId || !roomId) {
@@ -90,6 +105,16 @@ joinForm.addEventListener("submit", (e) => {
     playerName,
     studentId,
   });
+});
+// Save form fields to localStorage on change
+playerNameInput.addEventListener("input", (e) => {
+  localStorage.setItem("studentName", e.target.value);
+});
+studentIdInput.addEventListener("input", (e) => {
+  localStorage.setItem("studentId", e.target.value);
+});
+roomIdInput.addEventListener("input", (e) => {
+  localStorage.setItem("studentRoomId", e.target.value);
 });
 
 // Joined room event
