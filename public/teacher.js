@@ -270,9 +270,10 @@ socket.on("room_created", (data) => {
 
   // Set room link and ID (roomId is now a 6-digit code)
   const displayRoomId = roomId;
-  const fullUrl = `${window.location.origin}/student?room=${displayRoomId}`;
-  roomLink.value = fullUrl;
-  roomIdDisplay.textContent = displayRoomId;
+  // Always use hash-based dashboard with query string
+  const fullUrl = `${window.location.origin}/student#dashboard?room=${displayRoomId}`;
+  if (roomLink) roomLink.value = fullUrl;
+  if (roomIdDisplay) roomIdDisplay.textContent = displayRoomId;
 
   // Generate QR code
   setTimeout(() => {
@@ -790,9 +791,9 @@ socket.on("teacher_joined_room", (data) => {
 
     // Set room link and ID (roomId is now a 6-digit code)
     const displayRoomId = roomId;
-    const fullUrl = `${window.location.origin}/student?room=${displayRoomId}`;
-    roomLink.value = fullUrl;
-    roomIdDisplay.textContent = displayRoomId;
+    const fullUrl = `${window.location.origin}/student#dashboard?room=${displayRoomId}`;
+    if (roomLink) roomLink.value = fullUrl;
+    if (roomIdDisplay) roomIdDisplay.textContent = displayRoomId;
 
     // Restore QR code after refresh
     setTimeout(() => {

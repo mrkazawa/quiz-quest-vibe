@@ -5,6 +5,25 @@ const socket = io();
 // Hash-based routing: render correct screen on load/refresh
 function renderScreenFromHash() {
   const hash = window.location.hash;
+
+  // Always check hash query for room ID and update input
+  function getRoomIdFromHashQuery() {
+    // Example: #dashboard?room=123456
+    if (hash.startsWith("#dashboard")) {
+      const queryIndex = hash.indexOf("?");
+      if (queryIndex !== -1) {
+        const queryStr = hash.substring(queryIndex + 1);
+        const params = new URLSearchParams(queryStr);
+        const roomId = params.get("room");
+        if (roomId) {
+          roomIdInput.value = roomId;
+          localStorage.setItem("studentRoomId", roomId);
+        }
+      }
+    }
+  }
+  getRoomIdFromHashQuery();
+
   if (/^#(\d{6})\/waiting_room$/.test(hash)) {
     // Extract roomId from hash
     const match = hash.match(/^#(\d{6})\/waiting_room$/);
@@ -103,7 +122,6 @@ let currentScore = 0;
 let currentStreak = 0;
 let optionsLocked = false;
 
-// Check URL for room ID
 // Restore form values from localStorage if present
 const savedName = localStorage.getItem("studentName");
 const savedStudentId = localStorage.getItem("studentId");
@@ -112,13 +130,7 @@ if (savedName) playerNameInput.value = savedName;
 if (savedStudentId) studentIdInput.value = savedStudentId;
 if (savedRoomId) roomIdInput.value = savedRoomId;
 
-// Check URL for room ID (overrides localStorage)
-const urlParams = new URLSearchParams(window.location.search);
-const roomFromUrl = urlParams.get("room");
-if (roomFromUrl) {
-  roomIdInput.value = roomFromUrl;
-  localStorage.setItem("studentRoomId", roomFromUrl);
-}
+// ...existing code...
 
 // Handle join form submission
 joinForm.addEventListener("submit", (e) => {
