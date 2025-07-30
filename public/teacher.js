@@ -106,6 +106,22 @@ function loadAvailableQuizzes() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  // Add event handler for Start New Quiz button in completion screen
+  const startNewQuizBtn = document.querySelector(
+    ".btn.btn-lg.btn-primary.flex-grow-1.me-2"
+  );
+  if (startNewQuizBtn) {
+    startNewQuizBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      // Delete the current room if it exists
+      if (typeof currentRoom === "string" && currentRoom.length > 0) {
+        socket.emit("leave_room", currentRoom, true); // true = delete room
+        currentRoom = null;
+      }
+      // Navigate to dashboard
+      window.location.hash = "#dashboard";
+    });
+  }
   // Download CSV button for quiz history detail
   const downloadHistoryCsvBtn = document.getElementById(
     "downloadHistoryCsvBtn"

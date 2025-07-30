@@ -186,9 +186,14 @@ joinForm.addEventListener("submit", (e) => {
   }
   currentRoom = roomId;
 
-  // Update hash-based routing immediately
-  window.location.hash = `#${roomId}/waiting_room`;
-  // Do NOT emit join_room here; it will be handled by renderScreenFromHash
+  // Emit join_room here if all fields are filled
+  if (playerName && studentId && roomId) {
+    socket.emit("join_room", {
+      roomId,
+      playerName,
+      studentId,
+    });
+  }
 });
 // Save form fields to localStorage on change
 playerNameInput.addEventListener("input", (e) => {

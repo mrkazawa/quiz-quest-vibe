@@ -225,6 +225,19 @@ io.on("connection", (socket) => {
       return;
     }
 
+    // Always clear any previous timer before starting a new quiz
+    if (rooms[roomId].timer) {
+      clearTimeout(rooms[roomId].timer);
+      rooms[roomId].timer = null;
+    }
+
+    // Reset all player states for a new quiz session
+    Object.values(rooms[roomId].players).forEach((player) => {
+      player.answers = [];
+      player.score = 0;
+      player.streak = 0;
+    });
+
     rooms[roomId].isActive = true;
     rooms[roomId].currentQuestionIndex = 0;
 
@@ -395,11 +408,18 @@ io.on("connection", (socket) => {
       return;
     }
 
-    // Update hostId to this teacher
+    // Always update hostId to this teacher's socket
     rooms[roomId].hostId = socket.id;
-
-    // Join the socket to the room
     socket.join(roomId);
+
+    // If the room is NOT active (waiting room), clear any previous timer and reset quiz state
+    if (!rooms[roomId].isActive) {
+      if (rooms[roomId].timer) {
+        clearTimeout(rooms[roomId].timer);
+        rooms[roomId].timer = null;
+      }
+      rooms[roomId].currentQuestionIndex = 0;
+    }
 
     // Send room info to the teacher
     socket.emit("teacher_joined_room", {
