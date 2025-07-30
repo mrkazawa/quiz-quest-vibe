@@ -240,25 +240,25 @@ function createRoom(questionId) {
 
 // Room created event
 socket.on("room_created", (data) => {
-  const { roomId, questionId } = data;
+  const { roomId, quizId } = data;
   currentRoom = roomId;
-
-  // Persist last created room ID for refresh
   localStorage.setItem("lastCreatedRoomId", roomId);
+  localStorage.setItem("lastCreatedQuizId", quizId);
 
-  // Set hash to #<room_id>/waiting_room for navigation and refresh persistence
-  const displayRoomId = roomId.replace("room_", "");
-  window.location.hash = `#${displayRoomId}/waiting_room`;
+  // Update hash to waiting room using unique roomId
+  window.location.hash = `#${roomId}/waiting_room`;
 
-  // Update UI - use showScreen to ensure all other screens are hidden
-  showScreen(waitingRoomScreen);
+  // Show waiting room UI
+  quizSelectionScreen.classList.add("d-none");
+  waitingRoomScreen.classList.remove("d-none");
 
-  // Set room link and ID
+  // Set room link and ID (roomId is now a 6-digit code)
+  const displayRoomId = roomId;
   const fullUrl = `${window.location.origin}/student?room=${displayRoomId}`;
   roomLink.value = fullUrl;
   roomIdDisplay.textContent = displayRoomId;
 
-  // Generate QR code for the room link
+  // Generate QR code
   setTimeout(() => {
     const qrContainer = document.getElementById("qrCodeContainer");
     if (qrContainer) {
@@ -753,8 +753,8 @@ socket.on("teacher_joined_room", (data) => {
     // Show waiting room
     waitingRoomScreen.classList.remove("d-none");
 
-    // Set room link and ID
-    const displayRoomId = roomId.replace("room_", "");
+    // Set room link and ID (roomId is now a 6-digit code)
+    const displayRoomId = roomId;
     const fullUrl = `${window.location.origin}/student?room=${displayRoomId}`;
     roomLink.value = fullUrl;
     roomIdDisplay.textContent = displayRoomId;

@@ -123,24 +123,24 @@ io.on("connection", (socket) => {
       return;
     }
 
-    const roomId = `room_${quizId}`;
+    // Generate a unique 6-digit numeric room code
+    let roomCode;
+    do {
+      roomCode = Math.floor(100000 + Math.random() * 900000).toString();
+    } while (rooms[roomCode]);
 
-    // Create the room if it doesn't exist
-    if (!rooms[roomId]) {
-      rooms[roomId] = {
-        quizId: quizId,
-        questions: questionSet.questions,
-        players: {},
-        isActive: false,
-        currentQuestionIndex: 0,
-        results: {},
-        hostId: socket.id,
-        createdAt: Date.now(),
-      };
-    } else {
-      // Update host if room exists
-      rooms[roomId].hostId = socket.id;
-    }
+    const roomId = roomCode;
+
+    rooms[roomId] = {
+      quizId: quizId,
+      questions: questionSet.questions,
+      players: {},
+      isActive: false,
+      currentQuestionIndex: 0,
+      results: {},
+      hostId: socket.id,
+      createdAt: Date.now(),
+    };
 
     socket.join(roomId);
     socket.emit("room_created", { roomId, quizId });
