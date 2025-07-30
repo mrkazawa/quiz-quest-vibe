@@ -162,6 +162,25 @@ io.on("connection", (socket) => {
       return;
     }
 
+    // Remove any previous socket for this studentId in the room
+    for (const sid in rooms[roomId].players) {
+      const p = rooms[roomId].players[sid];
+      if (p.studentId === studentId && sid !== socket.id) {
+        // Log student leaving
+        console.log(
+          `Player ${p.name} (Student ID: ${p.studentId}) left room ${roomId}`
+        );
+        // Emit player_left event to room
+        io.to(roomId).emit("player_left", {
+          playerId: sid,
+          players: Object.values(rooms[roomId].players)
+            .filter((x) => x.id !== sid)
+            .map((x) => ({ id: x.id, name: x.name, score: x.score })),
+        });
+        delete rooms[roomId].players[sid];
+      }
+    }
+
     // Add player to the room
     socket.join(roomId);
 
@@ -324,6 +343,23 @@ io.on("connection", (socket) => {
       return;
     }
 
+    // Remove student from room if present
+    const player = rooms[roomId].players[socket.id];
+    if (player) {
+      console.log(
+        `Player ${player.name} (Student ID: ${player.studentId}) left room ${roomId}`
+      );
+      delete rooms[roomId].players[socket.id];
+      io.to(roomId).emit("player_left", {
+        playerId: socket.id,
+        players: Object.values(rooms[roomId].players).map((p) => ({
+          id: p.id,
+          name: p.name,
+          score: p.score,
+        })),
+      });
+    }
+
     // If this user is the host
     if (rooms[roomId].hostId === socket.id) {
       // Only delete the room if explicitly requested
@@ -400,6 +436,14 @@ io.on("connection", (socket) => {
     // Remove player from any rooms they were in
     for (const roomId in rooms) {
       if (rooms[roomId].players[socket.id]) {
+        // Log student leaving
+        const player = rooms[roomId].players[socket.id];
+        if (player) {
+          console.log(
+            `Player ${player.name} (Student ID: ${player.studentId}) left room ${roomId}`
+          );
+        }
+
         delete rooms[roomId].players[socket.id];
 
         // Notify others that player left

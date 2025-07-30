@@ -2,11 +2,81 @@
 const socket = io();
 
 // DOM Elements
+// Hash-based routing: render correct screen on load/refresh
+function renderScreenFromHash() {
+  const hash = window.location.hash;
+  if (/^#(\d{6})\/waiting_room$/.test(hash)) {
+    // Extract roomId from hash
+    const match = hash.match(/^#(\d{6})\/waiting_room$/);
+    const roomId = match ? match[1] : null;
+    if (roomId) {
+      // Restore session info from localStorage
+      const session = JSON.parse(
+        localStorage.getItem("studentSession") || "null"
+      );
+      if (
+        session &&
+        session.playerName &&
+        session.studentId &&
+        session.roomId === roomId
+      ) {
+        // Rejoin the room as student
+        socket.emit("join_room", {
+          roomId: roomId,
+          playerName: session.playerName,
+          studentId: session.studentId,
+        });
+        // Show waiting room UI
+        joinQuizScreen.classList.add("d-none");
+        waitingRoomScreen.classList.remove("d-none");
+        waitingRoomId.textContent = roomId;
+      } else {
+        // If info missing, go back to dashboard
+        window.location.hash = "#dashboard";
+        showDashboardScreen();
+      }
+    }
+  } else {
+    // Default: show dashboard/join screen
+    showDashboardScreen();
+  }
+}
+
+function showDashboardScreen() {
+  joinQuizScreen.classList.remove("d-none");
+  waitingRoomScreen.classList.add("d-none");
+  quizQuestionScreen.classList.add("d-none");
+  questionResultsScreen.classList.add("d-none");
+  finalResultsScreen.classList.add("d-none");
+}
+
+window.addEventListener("hashchange", renderScreenFromHash);
+document.addEventListener("DOMContentLoaded", renderScreenFromHash);
 const joinQuizScreen = document.getElementById("joinQuizScreen");
 const waitingRoomScreen = document.getElementById("waitingRoomScreen");
 const quizQuestionScreen = document.getElementById("quizQuestionScreen");
 const questionResultsScreen = document.getElementById("questionResultsScreen");
 const finalResultsScreen = document.getElementById("finalResultsScreen");
+const waitingRoomBackBtn = document.getElementById("waitingRoomBackBtn");
+// Waiting Room Back Button logic
+if (waitingRoomBackBtn) {
+  waitingRoomBackBtn.addEventListener("click", () => {
+    if (confirm("Are you sure you want to leave the room?")) {
+      // Emit leave_room to server if in a room
+      const session = JSON.parse(
+        localStorage.getItem("studentSession") || "null"
+      );
+      if (session && session.roomId) {
+        socket.emit("leave_room", session.roomId);
+      }
+      // Remove session info
+      localStorage.removeItem("studentSession");
+      // Navigate to dashboard
+      window.location.hash = "#dashboard";
+      showDashboardScreen();
+    }
+  });
+}
 // Header title removed - using horizontal logo only
 
 const joinForm = document.getElementById("joinForm");
@@ -58,10 +128,15 @@ joinForm.addEventListener("submit", (e) => {
   const studentId = studentIdInput.value.trim();
   let roomId = roomIdInput.value.trim();
 
-  // Save to localStorage
-  localStorage.setItem("studentName", playerName);
-  localStorage.setItem("studentId", studentId);
-  localStorage.setItem("studentRoomId", roomId);
+  // Save session info to localStorage for reconnection
+  localStorage.setItem(
+    "studentSession",
+    JSON.stringify({
+      playerName,
+      studentId,
+      roomId,
+    })
+  );
 
   // Check if all fields are filled
   if (!playerName || !studentId || !roomId) {
@@ -99,12 +174,9 @@ joinForm.addEventListener("submit", (e) => {
   }
   currentRoom = roomId;
 
-  // Join the room
-  socket.emit("join_room", {
-    roomId: roomId,
-    playerName,
-    studentId,
-  });
+  // Update hash-based routing immediately
+  window.location.hash = `#${roomId}/waiting_room`;
+  // Do NOT emit join_room here; it will be handled by renderScreenFromHash
 });
 // Save form fields to localStorage on change
 playerNameInput.addEventListener("input", (e) => {
@@ -120,6 +192,11 @@ roomIdInput.addEventListener("input", (e) => {
 // Joined room event
 socket.on("joined_room", (data) => {
   const { roomId, isActive } = data;
+
+  // Do not clear session info here; only clear after quiz ends or student leaves
+
+  // Update hash-based routing
+  window.location.hash = `#${roomId}/waiting_room`;
 
   // Update UI
   joinQuizScreen.classList.add("d-none");
@@ -357,6 +434,9 @@ socket.on("quiz_ended", (data) => {
   if (timerInterval) {
     clearInterval(timerInterval);
   }
+
+  // Clear session info after quiz ends
+  localStorage.removeItem("studentSession");
 
   // Update UI
   waitingRoomScreen.classList.add("d-none");
