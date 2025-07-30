@@ -548,13 +548,12 @@ function endQuiz(roomId) {
       score: p.score,
     }));
 
-  // Save to quiz history
-  const historyId = `history_${Date.now()}`;
+  // Save to quiz history using roomId as the key and identifier
   const room = rooms[roomId];
   const quizSet = questionSets[room.quizId];
 
-  quizHistory[historyId] = {
-    id: historyId,
+  quizHistory[roomId] = {
+    id: roomId,
     roomId: roomId,
     quizId: room.quizId,
     quizName: quizSet ? quizSet.name : room.quizId,
@@ -564,9 +563,9 @@ function endQuiz(roomId) {
   };
 
   // Send quiz ended event with minimal info (no rankings for teacher/waiting room)
-  io.to(roomId).emit("quiz_ended", { historyId });
+  io.to(roomId).emit("quiz_ended", { historyId: roomId });
 
-  console.log(`Quiz ended in room ${roomId}, saved as history ${historyId}`);
+  console.log(`Quiz ended in room ${roomId}, saved as history ${roomId}`);
 
   // Clear any active timers
   if (rooms[roomId].timer) {

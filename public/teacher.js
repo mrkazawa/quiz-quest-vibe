@@ -147,12 +147,20 @@ document.addEventListener("DOMContentLoaded", () => {
       for (const row of dataRows) {
         csv += `"${row.rankCell}","${row.playerName}","${row.studentId}","${row.score}"\n`;
       }
+      // Get roomId from the history detail view
+      let roomId = "";
+      const roomIdElem = document.getElementById("historyRoomId");
+      if (roomIdElem) {
+        roomId = roomIdElem.textContent.trim();
+      }
       // Download as CSV
       const blob = new Blob([csv], { type: "text/csv" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "quiz-history-rankings.csv";
+      a.download = roomId
+        ? `quiz-result-${roomId}.csv`
+        : "quiz-history-rankings.csv";
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -184,6 +192,14 @@ document.addEventListener("DOMContentLoaded", () => {
           const qrContainer = document.getElementById("qrCodeContainer");
           if (qrContainer) qrContainer.innerHTML = "";
         }
+      }
+    } else if (/^#history\/(\w+)$/.test(hash)) {
+      // Show quiz history detail for the given room ID
+      const match = hash.match(/^#history\/(\w+)$/);
+      if (match) {
+        const roomId = match[1];
+        showScreen(historyDetailScreen);
+        loadHistoryDetail(roomId);
       }
     } else {
       switch (hash) {
@@ -720,6 +736,25 @@ document.addEventListener("DOMContentLoaded", () => {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     });
+    // Get room ID for filename
+    let roomId = "unknown";
+    const roomIdElem = document.getElementById("historyRoomId");
+    if (roomIdElem && roomIdElem.textContent) {
+      roomId = roomIdElem.textContent.trim();
+    } else if (typeof currentRoom === "string" && currentRoom.length > 0) {
+      roomId = currentRoom;
+    }
+    const filename = `quiz-result-${roomId}.csv`;
+    // ...existing code for creating blob and triggering download...
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 });
 
@@ -948,7 +983,8 @@ function loadQuizHistory() {
         const viewBtn = row.querySelector(".view-history-btn");
         viewBtn.addEventListener("click", (event) => {
           event.preventDefault();
-          loadHistoryDetail(item.id);
+          window.location.hash = `#history/${item.roomId}`;
+          // The hashchange event will trigger renderScreenFromHash and loadHistoryDetail
         });
 
         historyTableBody.appendChild(row);
@@ -988,6 +1024,10 @@ function loadHistoryDetail(historyId) {
 
       document.getElementById("historyPlayerCount").textContent =
         historyDetail.playerCount;
+
+      // Set room ID
+      document.getElementById("historyRoomId").textContent =
+        historyDetail.roomId || historyId;
 
       // Populate rankings table
       historyRankingsTable.innerHTML = "";
@@ -1037,7 +1077,7 @@ backToTeacherBtn.addEventListener("click", () => {
 });
 
 backToHistoryBtn.addEventListener("click", () => {
-  showScreen(quizHistoryScreen);
+  window.location.hash = "#history";
 });
 
 // Main view history button functionality
