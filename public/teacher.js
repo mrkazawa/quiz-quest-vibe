@@ -462,9 +462,22 @@ socket.on("new_question", (data) => {
   }
 
   // Set question text and options
-  document.getElementById("questionNumber").textContent = `Question ${
-    currentQuestionIndex + 1
-  }`;
+  const totalQuestions =
+    data.totalQuestions || (quizQuestions ? quizQuestions.length : 0);
+  const currentNum =
+    typeof data.currentQuestionIndex === "number"
+      ? data.currentQuestionIndex + 1
+      : currentQuestionIndex + 1;
+  document.getElementById(
+    "questionNumber"
+  ).textContent = `Question ${currentNum} of ${totalQuestions}`;
+
+  // Change Next Question button to Finalize Quiz if on last question
+  if (currentNum === totalQuestions) {
+    nextQuestionBtn.textContent = "Finalize Quiz";
+  } else {
+    nextQuestionBtn.textContent = "Next Question";
+  }
   document.getElementById("questionText").textContent = question;
   document.getElementById("timerDisplay").textContent = `${timeLimit}s`;
 
