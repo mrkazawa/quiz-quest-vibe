@@ -187,59 +187,45 @@ document.addEventListener("DOMContentLoaded", () => {
   // Hash-based routing: render correct screen on load/refresh
   function renderScreenFromHash() {
     const hash = window.location.hash;
+    // New hash-based routing for question/result/final states
+    const waitingRoomPattern = /^#([\w-]+)\/waiting_room$/;
+    const questionPattern = /^#([\w-]+)\/question\/(\w+)$/;
+    const resultPattern = /^#([\w-]+)\/result\/(\w+)$/;
+    const finalPattern = /^#([\w-]+)\/final$/;
+
     if (hash === "#dashboard") {
       showScreen(quizSelectionScreen);
       loadAvailableQuizzes();
-    } else if (/^#([\w-]+)\/waiting_room$/.test(hash)) {
+    } else if (waitingRoomPattern.test(hash)) {
       showScreen(waitingRoomScreen);
-      // Always extract roomId from hash and rejoin
-      const match = hash.match(/^#([\w-]+)\/waiting_room$/);
+      const match = hash.match(waitingRoomPattern);
       if (match) {
         const displayRoomId = match[1];
-        // Always rejoin using the hash value
         socket.emit("join_teacher_room", displayRoomId);
-        // UI setup will be handled by teacher_joined_room event
       }
+    } else if (questionPattern.test(hash)) {
+      showScreen(quizRunningScreen);
+      // Optionally update question UI here
+    } else if (resultPattern.test(hash)) {
+      showScreen(questionResultsScreen);
+      // Optionally update result UI here
+    } else if (finalPattern.test(hash)) {
+      showScreen(quizCompletionScreen);
     } else if (/^#history\/(\w+)$/.test(hash)) {
-      // Show quiz history detail for the given room ID
       const match = hash.match(/^#history\/(\w+)$/);
       if (match) {
         const roomId = match[1];
         showScreen(historyDetailScreen);
         loadHistoryDetail(roomId);
       }
+    } else if (hash === "#history" || hash === "#quiz-history") {
+      loadQuizHistory();
+      showScreen(quizHistoryScreen);
+    } else if (hash === "#create-room") {
+      showScreen(createRoomScreen);
     } else {
-      switch (hash) {
-        case "#waiting-room":
-          showScreen(waitingRoomScreen);
-          break;
-        case "#quiz-running":
-          showScreen(quizRunningScreen);
-          break;
-        case "#question-results":
-          showScreen(questionResultsScreen);
-          break;
-        case "#quiz-completion":
-          showScreen(quizCompletionScreen);
-          break;
-        case "#history":
-          loadQuizHistory();
-          showScreen(quizHistoryScreen);
-          break;
-        case "#quiz-history":
-          loadQuizHistory();
-          showScreen(quizHistoryScreen);
-          break;
-        case "#history-detail":
-          showScreen(historyDetailScreen);
-          break;
-        case "#create-room":
-          showScreen(createRoomScreen);
-          break;
-        default:
-          showScreen(quizSelectionScreen);
-          loadAvailableQuizzes();
-      }
+      showScreen(quizSelectionScreen);
+      loadAvailableQuizzes();
     }
   }
 
@@ -444,12 +430,18 @@ if (backToDashboardBtn) {
 socket.on("quiz_started", () => {
   currentQuestionIndex = 0;
   waitingRoomScreen.classList.add("d-none");
+  // Hash will be set in new_question event
 });
 
 // New question event
 socket.on("new_question", (data) => {
   const { question, options, timeLimit, questionId } = data;
   currentQuestion = data;
+
+  // Update hash to question state
+  if (currentRoom && questionId) {
+    window.location.hash = `#${currentRoom}/question/${questionId}`;
+  }
 
   // Update UI
   waitingRoomScreen.classList.add("d-none");
@@ -529,6 +521,11 @@ socket.on("question_ended", (data) => {
     clearInterval(timerInterval);
   }
 
+  // Update hash to result state
+  if (currentRoom && currentQuestion && currentQuestion.questionId) {
+    window.location.hash = `#${currentRoom}/result/${currentQuestion.questionId}`;
+  }
+
   // Update UI
   quizRunningScreen.classList.add("d-none");
   questionResultsScreen.classList.remove("d-none");
@@ -598,7 +595,26 @@ socket.on("question_ended", (data) => {
 // Next question button
 nextQuestionBtn.addEventListener("click", () => {
   if (currentRoom) {
-    socket.emit("next_question", currentRoom);
+    // If on last question, finalize quiz and go to final screen
+    const totalQuestions =
+      currentQuestion && currentQuestion.totalQuestions
+        ? currentQuestion.totalQuestions
+        : quizQuestions
+        ? quizQuestions.length
+        : 0;
+    const currentNum =
+      currentQuestion &&
+      typeof currentQuestion.currentQuestionIndex === "number"
+        ? currentQuestion.currentQuestionIndex + 1
+        : currentQuestionIndex;
+    if (currentNum === totalQuestions) {
+      // Finalize quiz
+      socket.emit("next_question", currentRoom);
+      window.location.hash = `#${currentRoom}/final`;
+    } else {
+      socket.emit("next_question", currentRoom);
+      // Hash will be set in new_question event
+    }
   }
 });
 
