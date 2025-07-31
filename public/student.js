@@ -210,6 +210,13 @@ roomIdInput.addEventListener("input", (e) => {
 socket.on("joined_room", (data) => {
   const { roomId, isActive } = data;
 
+  // Always update currentRoom and currentPlayerName on join (fixes refresh bug)
+  currentRoom = roomId;
+  const session = JSON.parse(localStorage.getItem("studentSession") || "null");
+  if (session && session.playerName) {
+    currentPlayerName = session.playerName;
+  }
+
   // Do not clear session info here; only clear after quiz ends or student leaves
 
   // Update hash-based routing
@@ -265,10 +272,24 @@ socket.on("quiz_started", () => {
 
 // New question event
 socket.on("new_question", (data) => {
-  const { question, options, timeLimit, questionId } = data;
+  const {
+    question,
+    options,
+    timeLimit,
+    questionId,
+    currentScore: serverScore,
+    currentStreak: serverStreak,
+    currentQuestionIndex: serverQuestionIndex,
+  } = data;
   currentQuestion = data;
   hasAnswered = false;
   optionsLocked = false;
+
+  // If server sent currentScore/currentStreak/currentQuestionIndex, use them (for rejoin/refresh)
+  if (typeof serverScore === "number") currentScore = serverScore;
+  if (typeof serverStreak === "number") currentStreak = serverStreak;
+  if (typeof serverQuestionIndex === "number")
+    currentQuestionIndex = serverQuestionIndex;
 
   // Update UI
   waitingRoomScreen.classList.add("d-none");
@@ -306,8 +327,10 @@ socket.on("new_question", (data) => {
   // Start timer
   startTimer(timeLimit);
 
-  // Increment question counter for next question
-  currentQuestionIndex++;
+  // Only increment question counter for next question if not rejoining
+  if (typeof serverQuestionIndex !== "number") {
+    currentQuestionIndex++;
+  }
 });
 
 // Start timer function

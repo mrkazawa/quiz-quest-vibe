@@ -162,8 +162,12 @@ io.on("connection", (socket) => {
       socket.emit("join_error", "Room does not exist");
       return;
     }
-    // Prevent joining if quiz is already started
-    if (rooms[roomId].isActive) {
+    // Check if studentId is already present in the room
+    const isRejoin = Object.values(rooms[roomId].players).some(
+      (p) => p.studentId === studentId
+    );
+    // Prevent joining if quiz is already started, unless rejoining
+    if (rooms[roomId].isActive && !isRejoin) {
       socket.emit("join_error", "Quiz already started. Cannot join this room.");
       return;
     }
@@ -190,15 +194,32 @@ io.on("connection", (socket) => {
     // Add player to the room
     socket.join(roomId);
 
-    // Store player information
-    rooms[roomId].players[socket.id] = {
-      id: socket.id,
-      name: playerName,
-      studentId: studentId,
-      score: 0,
-      streak: 0,
-      answers: [],
-    };
+    // If rejoining, restore previous player state if exists
+    let prevPlayer = Object.values(rooms[roomId].players).find(
+      (p) => p.studentId === studentId
+    );
+    if (prevPlayer) {
+      // Remove previous player entry (should be only one left after above loop)
+      delete rooms[roomId].players[prevPlayer.id];
+      rooms[roomId].players[socket.id] = {
+        id: socket.id,
+        name: playerName,
+        studentId: studentId,
+        score: prevPlayer.score,
+        streak: prevPlayer.streak,
+        answers: prevPlayer.answers,
+      };
+    } else {
+      // New join
+      rooms[roomId].players[socket.id] = {
+        id: socket.id,
+        name: playerName,
+        studentId: studentId,
+        score: 0,
+        streak: 0,
+        answers: [],
+      };
+    }
 
     socket.emit("joined_room", {
       roomId,
@@ -206,6 +227,22 @@ io.on("connection", (socket) => {
       isActive: rooms[roomId].isActive,
     });
 
+    // If quiz is active, send current question and player state to this student only
+    if (rooms[roomId].isActive && rooms[roomId].currentQuestionIndex >= 0) {
+      const currentQuestionId =
+        rooms[roomId].questionOrder[rooms[roomId].currentQuestionIndex];
+      const currentQuestionObj = rooms[roomId].questions[currentQuestionId];
+      const player = rooms[roomId].players[socket.id];
+      socket.emit("new_question", {
+        question: currentQuestionObj.question,
+        options: currentQuestionObj.options,
+        timeLimit: currentQuestionObj.timeLimit,
+        questionId: currentQuestionObj.id,
+        currentScore: player ? player.score : 0,
+        currentStreak: player ? player.streak : 0,
+        currentQuestionIndex: rooms[roomId].currentQuestionIndex,
+      });
+    }
     // Notify everyone in the room that a new player joined
     io.to(roomId).emit("player_joined", {
       playerId: socket.id,
