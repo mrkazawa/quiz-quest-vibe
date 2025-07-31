@@ -241,6 +241,7 @@ io.on("connection", (socket) => {
         currentScore: player ? player.score : 0,
         currentStreak: player ? player.streak : 0,
         currentQuestionIndex: rooms[roomId].currentQuestionIndex,
+        totalQuestions: rooms[roomId].questionOrder.length,
       });
     }
     // Notify everyone in the room that a new player joined
@@ -295,6 +296,8 @@ io.on("connection", (socket) => {
       options: currentQuestionObj.options,
       timeLimit: currentQuestionObj.timeLimit,
       questionId: currentQuestionObj.id,
+      currentQuestionIndex: rooms[roomId].currentQuestionIndex,
+      totalQuestions: rooms[roomId].questionOrder.length,
     });
 
     console.log(`Quiz started in room ${roomId}`);
@@ -477,14 +480,16 @@ io.on("connection", (socket) => {
 
     // If the room is active, send the current question
     if (rooms[roomId].isActive && rooms[roomId].currentQuestionIndex >= 0) {
-      const currentQuestionObj =
-        rooms[roomId].questions[rooms[roomId].currentQuestionIndex];
-
+      const currentQuestionId =
+        rooms[roomId].questionOrder[rooms[roomId].currentQuestionIndex];
+      const currentQuestionObj = rooms[roomId].questions[currentQuestionId];
       socket.emit("new_question", {
         question: currentQuestionObj.question,
         options: currentQuestionObj.options,
         timeLimit: currentQuestionObj.timeLimit,
         questionId: currentQuestionObj.id,
+        currentQuestionIndex: rooms[roomId].currentQuestionIndex,
+        totalQuestions: rooms[roomId].questionOrder.length,
       });
     }
 
@@ -605,10 +610,11 @@ function moveToNextQuestion(roomId) {
 
   rooms[roomId].currentQuestionIndex++;
 
+  const totalQuestions = rooms[roomId].questionOrder.length;
+  const currentQuestionNumber = rooms[roomId].currentQuestionIndex + 1;
+
   // Check if we've reached the end of the quiz
-  if (
-    rooms[roomId].currentQuestionIndex >= rooms[roomId].questionOrder.length
-  ) {
+  if (rooms[roomId].currentQuestionIndex >= totalQuestions) {
     endQuiz(roomId);
     return;
   }
@@ -623,12 +629,12 @@ function moveToNextQuestion(roomId) {
     options: nextQuestionObj.options,
     timeLimit: nextQuestionObj.timeLimit,
     questionId: nextQuestionObj.id,
+    currentQuestionIndex: rooms[roomId].currentQuestionIndex,
+    totalQuestions: totalQuestions,
   });
 
   console.log(
-    `Moving to question ${
-      rooms[roomId].currentQuestionIndex + 1
-    } in room ${roomId}`
+    `Moving to question ${currentQuestionNumber} out of ${totalQuestions} in room ${roomId}`
   );
 
   // Set a timer for this question
@@ -679,6 +685,10 @@ function endQuiz(roomId) {
     clearTimeout(rooms[roomId].timer);
     rooms[roomId].timer = null;
   }
+
+  // Delete the room immediately after quiz ends
+  delete rooms[roomId];
+  console.log(`Room ${roomId} was deleted after quiz ended`);
 }
 
 // Authentication middleware
