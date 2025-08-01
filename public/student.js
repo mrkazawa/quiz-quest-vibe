@@ -1,6 +1,38 @@
 // Connect to socket.io server
 const socket = io();
 
+// DOM Elements - moved to top for availability in all functions
+const joinQuizScreen = document.getElementById("joinQuizScreen");
+const waitingRoomScreen = document.getElementById("waitingRoomScreen");
+const quizQuestionScreen = document.getElementById("quizQuestionScreen");
+const questionResultsScreen = document.getElementById("questionResultsScreen");
+const finalResultsScreen = document.getElementById("finalResultsScreen");
+const waitingRoomBackBtn = document.getElementById("waitingRoomBackBtn");
+const joinForm = document.getElementById("joinForm");
+const playerNameInput = document.getElementById("playerName");
+const studentIdInput = document.getElementById("studentId");
+const roomIdInput = document.getElementById("roomId");
+const waitingRoomId = document.getElementById("waitingRoomId");
+const playersList = document.getElementById("playersList");
+const answerFeedback = document.getElementById("answerFeedback");
+const feedbackText = document.getElementById("feedbackText");
+const scoreInfo = document.getElementById("scoreInfo");
+const streakContainer = document.getElementById("streakContainer");
+const streakValue = document.getElementById("streakValue");
+const finalRankingsTable = document.getElementById("finalRankingsTable");
+
+// Player state
+let currentRoom = null;
+let currentPlayerName = null;
+let currentQuestion = null;
+let hasAnswered = false;
+let timerInterval = null;
+let currentQuestionIndex = 0;
+let currentScore = 0;
+let currentStreak = 0;
+let optionsLocked = false;
+let isAppNavigation = false; // Flag to track programmatic navigation vs page refresh
+
 // DOM Elements
 // Hash-based routing: render correct screen on load/refresh
 function renderScreenFromHash() {
@@ -56,29 +88,45 @@ function renderScreenFromHash() {
       }
     }
   } else if (questionPattern.test(hash)) {
-    // Question state - show quiz question screen
-    showScreen(quizQuestionScreen);
-  } else if (submitPattern.test(hash)) {
-    // Submit state - show quiz question screen with waiting message
-    showScreen(quizQuestionScreen);
-    // Hide question and options, show waiting message
-    const questionOptionsContainer = document.getElementById(
-      "questionOptionsContainer"
-    );
-    if (questionOptionsContainer) {
-      questionOptionsContainer.classList.add("d-none");
+    // Question state - validate session and show quiz question screen
+    const match = hash.match(questionPattern);
+    const roomId = match ? match[1] : null;
+    if (validateQuizSession(roomId)) {
+      showScreen(quizQuestionScreen);
     }
-    document.getElementById("questionNumber").classList.add("d-none");
-    const waitingMsg = document.getElementById("waitingForResultMsg");
-    if (waitingMsg) {
-      waitingMsg.classList.remove("d-none");
+  } else if (submitPattern.test(hash)) {
+    // Submit state - validate session and show quiz question screen with waiting message
+    const match = hash.match(submitPattern);
+    const roomId = match ? match[1] : null;
+    if (validateQuizSession(roomId)) {
+      showScreen(quizQuestionScreen);
+      // Hide question and options, show waiting message
+      const questionOptionsContainer = document.getElementById(
+        "questionOptionsContainer"
+      );
+      if (questionOptionsContainer) {
+        questionOptionsContainer.classList.add("d-none");
+      }
+      document.getElementById("questionNumber").classList.add("d-none");
+      const waitingMsg = document.getElementById("waitingForResultMsg");
+      if (waitingMsg) {
+        waitingMsg.classList.remove("d-none");
+      }
     }
   } else if (resultPattern.test(hash)) {
-    // Result state - show question results screen
-    showScreen(questionResultsScreen);
+    // Result state - validate session and show question results screen
+    const match = hash.match(resultPattern);
+    const roomId = match ? match[1] : null;
+    if (validateQuizSession(roomId)) {
+      showScreen(questionResultsScreen);
+    }
   } else if (finalPattern.test(hash)) {
-    // Final state - show final results screen
-    showScreen(finalResultsScreen);
+    // Final state - validate session and show final results screen
+    const match = hash.match(finalPattern);
+    const roomId = match ? match[1] : null;
+    if (validateQuizSession(roomId)) {
+      showScreen(finalResultsScreen);
+    }
   } else {
     // Default: show dashboard/join screen
     showDashboardScreen();
@@ -105,14 +153,48 @@ function showDashboardScreen() {
   finalResultsScreen.classList.add("d-none");
 }
 
+// Function to validate quiz session for hash-based routing
+function validateQuizSession(roomId) {
+  // Only validate on page refresh, not on programmatic navigation
+  if (isAppNavigation) {
+    isAppNavigation = false; // Reset flag
+    return true;
+  }
+
+  if (!roomId) {
+    alert("Session Expired");
+    window.location.hash = "#dashboard";
+    showDashboardScreen();
+    return false;
+  }
+
+  // Check if we have valid session info for this room
+  const session = JSON.parse(localStorage.getItem("studentSession") || "null");
+  if (
+    !session ||
+    !session.playerName ||
+    !session.studentId ||
+    session.roomId !== roomId
+  ) {
+    alert("Session Expired");
+    window.location.hash = "#dashboard";
+    showDashboardScreen();
+    return false;
+  }
+
+  // Check if we're currently connected to this room
+  if (currentRoom !== roomId) {
+    alert("Session Expired");
+    window.location.hash = "#dashboard";
+    showDashboardScreen();
+    return false;
+  }
+
+  return true;
+}
+
 window.addEventListener("hashchange", renderScreenFromHash);
 document.addEventListener("DOMContentLoaded", renderScreenFromHash);
-const joinQuizScreen = document.getElementById("joinQuizScreen");
-const waitingRoomScreen = document.getElementById("waitingRoomScreen");
-const quizQuestionScreen = document.getElementById("quizQuestionScreen");
-const questionResultsScreen = document.getElementById("questionResultsScreen");
-const finalResultsScreen = document.getElementById("finalResultsScreen");
-const waitingRoomBackBtn = document.getElementById("waitingRoomBackBtn");
 // Waiting Room Back Button logic
 if (waitingRoomBackBtn) {
   waitingRoomBackBtn.addEventListener("click", () => {
@@ -133,30 +215,6 @@ if (waitingRoomBackBtn) {
   });
 }
 // Header title removed - using horizontal logo only
-
-const joinForm = document.getElementById("joinForm");
-const playerNameInput = document.getElementById("playerName");
-const studentIdInput = document.getElementById("studentId");
-const roomIdInput = document.getElementById("roomId");
-const waitingRoomId = document.getElementById("waitingRoomId");
-const playersList = document.getElementById("playersList");
-const answerFeedback = document.getElementById("answerFeedback");
-const feedbackText = document.getElementById("feedbackText");
-const scoreInfo = document.getElementById("scoreInfo");
-const streakContainer = document.getElementById("streakContainer");
-const streakValue = document.getElementById("streakValue");
-const finalRankingsTable = document.getElementById("finalRankingsTable");
-
-// Player state
-let currentRoom = null;
-let currentPlayerName = null;
-let currentQuestion = null;
-let hasAnswered = false;
-let timerInterval = null;
-let currentQuestionIndex = 0;
-let currentScore = 0;
-let currentStreak = 0;
-let optionsLocked = false;
 
 // Restore form values from localStorage if present
 const savedName = localStorage.getItem("studentName");
@@ -328,6 +386,7 @@ socket.on("new_question", (data) => {
     currentQuestionIndex = serverQuestionIndex;
 
   // Update hash-based URL for question state
+  isAppNavigation = true;
   window.location.hash = `#${currentRoom}/question/${questionId}`;
 
   // Update UI
@@ -463,6 +522,7 @@ for (let i = 0; i < 4; i++) {
     document.getElementById("questionNumber").classList.add("d-none");
 
     // Update hash-based URL for submit state
+    isAppNavigation = true;
     window.location.hash = `#${currentRoom}/submit/${currentQuestion.questionId}`;
 
     // Show waiting for result message
@@ -490,6 +550,7 @@ socket.on("question_ended", (data) => {
   }
 
   // Update hash-based URL for result state
+  isAppNavigation = true;
   window.location.hash = `#${currentRoom}/result/${currentQuestion.questionId}`;
 
   // Hide waiting for result message
@@ -549,6 +610,7 @@ socket.on("quiz_ended", (data) => {
   }
 
   // Update hash-based URL for final state
+  isAppNavigation = true;
   window.location.hash = `#${currentRoom}/final`;
 
   // Clear session info after quiz ends
