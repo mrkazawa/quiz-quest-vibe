@@ -296,12 +296,27 @@ socket.on("new_question", (data) => {
   questionResultsScreen.classList.add("d-none");
   quizQuestionScreen.classList.remove("d-none");
 
+  // Show question and options container
+  const questionOptionsContainer = document.getElementById(
+    "questionOptionsContainer"
+  );
+  if (questionOptionsContainer) {
+    questionOptionsContainer.classList.remove("d-none");
+  }
+  document.getElementById("questionNumber").classList.remove("d-none");
+
   // Reset options
   for (let i = 0; i < 4; i++) {
     const optionBtn = document.getElementById(`option${i}`);
-    optionBtn.classList.remove("correct-answer", "wrong-answer");
+    optionBtn.classList.remove("correct-answer", "wrong-answer", "d-none");
     optionBtn.disabled = false;
     optionBtn.textContent = options[i];
+  }
+
+  // Hide waiting message
+  const waitingMsg = document.getElementById("waitingForResultMsg");
+  if (waitingMsg) {
+    waitingMsg.classList.add("d-none");
   }
 
   // Set question text and timer
@@ -398,27 +413,31 @@ for (let i = 0; i < 4; i++) {
 
     // Highlight selected option
     optionBtn.classList.add("selected");
+
+    // Hide question and options container
+    const questionOptionsContainer = document.getElementById(
+      "questionOptionsContainer"
+    );
+    if (questionOptionsContainer) {
+      questionOptionsContainer.classList.add("d-none");
+    }
+    document.getElementById("questionNumber").classList.add("d-none");
+
+    // Show waiting for result message
+    const waitingMsg = document.getElementById("waitingForResultMsg");
+    if (waitingMsg) {
+      waitingMsg.classList.remove("d-none");
+    }
   });
 }
 
 // Answer result event
+// Remove immediate feedback on answer_result
 socket.on("answer_result", (data) => {
-  const { isCorrect, pointsEarned, streak, totalScore } = data;
-
-  // Update player stats
+  const { streak, totalScore } = data;
+  // Only update stats, do not show feedback
   currentScore = totalScore;
   currentStreak = streak;
-
-  // Show feedback
-  feedbackText.textContent = isCorrect
-    ? `Correct! +${pointsEarned}`
-    : "Incorrect!";
-  answerFeedback.style.backgroundColor = isCorrect ? "#2ecc71" : "#e74c3c";
-  answerFeedback.style.display = "block";
-
-  setTimeout(() => {
-    answerFeedback.style.display = "none";
-  }, 2000);
 });
 
 // Question ended event
@@ -426,6 +445,12 @@ socket.on("question_ended", (data) => {
   // Clear timer
   if (timerInterval) {
     clearInterval(timerInterval);
+  }
+
+  // Hide waiting for result message
+  const waitingMsg = document.getElementById("waitingForResultMsg");
+  if (waitingMsg) {
+    waitingMsg.classList.add("d-none");
   }
 
   // Update UI

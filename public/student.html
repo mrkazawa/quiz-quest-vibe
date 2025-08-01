@@ -215,37 +215,52 @@
               </div>
             </div>
             <div class="card-body question-container">
-              <h3 id="questionText" class="mb-4 text-center"></h3>
+              <div id="questionOptionsContainer">
+                <h3 id="questionText" class="mb-4 text-center"></h3>
+                <div class="row mb-4">
+                  <div class="col-md-6 mb-2">
+                    <button
+                      id="option0"
+                      class="option-btn option-0 btn w-100"
+                      data-id="0"
+                    ></button>
+                  </div>
+                  <div class="col-md-6 mb-2">
+                    <button
+                      id="option1"
+                      class="option-btn option-1 btn w-100"
+                      data-id="1"
+                    ></button>
+                  </div>
+                  <div class="col-md-6 mb-2">
+                    <button
+                      id="option2"
+                      class="option-btn option-2 btn w-100"
+                      data-id="2"
+                    ></button>
+                  </div>
+                  <div class="col-md-6 mb-2">
+                    <button
+                      id="option3"
+                      class="option-btn option-3 btn w-100"
+                      data-id="3"
+                    ></button>
+                  </div>
+                </div>
+              </div>
 
-              <div class="row mb-4">
-                <div class="col-md-6 mb-2">
-                  <button
-                    id="option0"
-                    class="option-btn option-0 btn w-100"
-                    data-id="0"
-                  ></button>
-                </div>
-                <div class="col-md-6 mb-2">
-                  <button
-                    id="option1"
-                    class="option-btn option-1 btn w-100"
-                    data-id="1"
-                  ></button>
-                </div>
-                <div class="col-md-6 mb-2">
-                  <button
-                    id="option2"
-                    class="option-btn option-2 btn w-100"
-                    data-id="2"
-                  ></button>
-                </div>
-                <div class="col-md-6 mb-2">
-                  <button
-                    id="option3"
-                    class="option-btn option-3 btn w-100"
-                    data-id="3"
-                  ></button>
-                </div>
+              <!-- Waiting for result message -->
+              <div
+                id="waitingForResultMsg"
+                class="alert alert-warning text-center d-none"
+                style="font-size: 1.2rem"
+              >
+                <div
+                  class="spinner-border text-warning me-2"
+                  role="status"
+                  style="vertical-align: middle"
+                ></div>
+                Waiting for other players or time to end...
               </div>
 
               <div id="scoreInfo" class="alert alert-info d-none">
