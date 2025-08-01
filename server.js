@@ -141,6 +141,7 @@ io.on("connection", (socket) => {
       questions: questionsMap, // now a map
       questionOrder: questionSet.questions.map((q) => q.id), // preserve order
       players: {},
+      studentHistory: new Set(), // Track all students who have ever joined this room
       isActive: false,
       currentQuestionIndex: 0,
       results: {},
@@ -162,15 +163,24 @@ io.on("connection", (socket) => {
       socket.emit("join_error", "Room does not exist");
       return;
     }
-    // Check if studentId is already present in the room
+
+    // Check if studentId is already present in the room (for rejoining)
     const isRejoin = Object.values(rooms[roomId].players).some(
       (p) => p.studentId === studentId
     );
-    // Prevent joining if quiz is already started, unless rejoining
-    if (rooms[roomId].isActive && !isRejoin) {
+
+    // Check if student has ever been in this room (even if disconnected)
+    const hasBeenInRoom = rooms[roomId].studentHistory.has(studentId);
+
+    // For active quizzes, allow rejoining if student was previously in the room
+    // Even if their socket was disconnected and they're not currently in the players list
+    if (rooms[roomId].isActive && !isRejoin && !hasBeenInRoom) {
       socket.emit("join_error", "Quiz already started. Cannot join this room.");
       return;
     }
+
+    // Add student to history when they join (for future rejoins)
+    rooms[roomId].studentHistory.add(studentId);
 
     // Remove any previous socket for this studentId in the room
     for (const sid in rooms[roomId].players) {
@@ -233,10 +243,21 @@ io.on("connection", (socket) => {
         rooms[roomId].questionOrder[rooms[roomId].currentQuestionIndex];
       const currentQuestionObj = rooms[roomId].questions[currentQuestionId];
       const player = rooms[roomId].players[socket.id];
+
+      // Calculate remaining time if question is in progress
+      let remainingTime = currentQuestionObj.timeLimit;
+      if (rooms[roomId].questionStartTime) {
+        const elapsed = Math.floor(
+          (Date.now() - rooms[roomId].questionStartTime) / 1000
+        );
+        remainingTime = Math.max(0, currentQuestionObj.timeLimit - elapsed);
+      }
+
       socket.emit("new_question", {
         question: currentQuestionObj.question,
         options: currentQuestionObj.options,
         timeLimit: currentQuestionObj.timeLimit,
+        remainingTime: remainingTime, // Add remaining time
         questionId: currentQuestionObj.id,
         currentScore: player ? player.score : 0,
         currentStreak: player ? player.streak : 0,
@@ -284,6 +305,7 @@ io.on("connection", (socket) => {
 
     rooms[roomId].isActive = true;
     rooms[roomId].currentQuestionIndex = 0;
+    rooms[roomId].questionStartTime = Date.now(); // Track when question starts
 
     // Get the current questionId from order
     const currentQuestionId =
@@ -295,6 +317,7 @@ io.on("connection", (socket) => {
       question: currentQuestionObj.question,
       options: currentQuestionObj.options,
       timeLimit: currentQuestionObj.timeLimit,
+      remainingTime: currentQuestionObj.timeLimit, // Full time for new question
       questionId: currentQuestionObj.id,
       currentQuestionIndex: rooms[roomId].currentQuestionIndex,
       totalQuestions: rooms[roomId].questionOrder.length,
@@ -553,6 +576,9 @@ io.on("connection", (socket) => {
 function endQuestion(roomId) {
   if (!rooms[roomId]) return;
 
+  // Clear question start time
+  rooms[roomId].questionStartTime = null;
+
   const currentQuestionId =
     rooms[roomId].questionOrder[rooms[roomId].currentQuestionIndex];
   const currentQuestionObj = rooms[roomId].questions[currentQuestionId];
@@ -624,10 +650,14 @@ function moveToNextQuestion(roomId) {
     rooms[roomId].questionOrder[rooms[roomId].currentQuestionIndex];
   const nextQuestionObj = rooms[roomId].questions[nextQuestionId];
 
+  // Track when the new question starts
+  rooms[roomId].questionStartTime = Date.now();
+
   io.to(roomId).emit("new_question", {
     question: nextQuestionObj.question,
     options: nextQuestionObj.options,
     timeLimit: nextQuestionObj.timeLimit,
+    remainingTime: nextQuestionObj.timeLimit, // Full time for new question
     questionId: nextQuestionObj.id,
     currentQuestionIndex: rooms[roomId].currentQuestionIndex,
     totalQuestions: totalQuestions,

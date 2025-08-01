@@ -182,15 +182,41 @@ function validateQuizSession(roomId) {
     return false;
   }
 
-  // Check if we're currently connected to this room
-  if (currentRoom !== roomId) {
-    alert("Session Expired");
-    window.location.hash = "#dashboard";
-    showDashboardScreen();
-    return false;
+  // For quiz progress states, always try to rejoin if we have valid session info
+  // Don't immediately fail if currentRoom doesn't match - let the server handle rejoining
+  if (currentRoom !== roomId && session.roomId === roomId) {
+    console.log(`Attempting to rejoin room ${roomId} with session data`);
+
+    // Attempt to rejoin the room with stored session info
+    socket.emit("join_room", {
+      roomId: session.roomId,
+      playerName: session.playerName,
+      studentId: session.studentId,
+    });
+
+    // Set a temporary timeout to check if join was successful
+    setTimeout(() => {
+      if (currentRoom !== roomId) {
+        // If still not connected after 2 seconds, show session expired
+        alert("Session Expired - Unable to rejoin room");
+        window.location.hash = "#dashboard";
+        showDashboardScreen();
+      }
+    }, 2000);
+
+    return true; // Allow the validation to pass, server will handle the rest
   }
 
-  return true;
+  // If already connected to the correct room, validation passes
+  if (currentRoom === roomId) {
+    return true;
+  }
+
+  // Final fallback - session expired
+  alert("Session Expired");
+  window.location.hash = "#dashboard";
+  showDashboardScreen();
+  return false;
 }
 
 window.addEventListener("hashchange", renderScreenFromHash);
@@ -313,17 +339,17 @@ socket.on("joined_room", (data) => {
 
   // Do not clear session info here; only clear after quiz ends or student leaves
 
-  // Update hash-based routing
-  window.location.hash = `#${roomId}/waiting_room`;
-
-  // Update UI
-  joinQuizScreen.classList.add("d-none");
-
   if (isActive) {
-    // Quiz is already in progress
+    // Quiz is already in progress - don't change hash here, let new_question event handle it
     quizQuestionScreen.classList.remove("d-none");
+    joinQuizScreen.classList.add("d-none");
   } else {
     // Wait for quiz to start
+    isAppNavigation = true;
+    window.location.hash = `#${roomId}/waiting_room`;
+
+    // Update UI
+    joinQuizScreen.classList.add("d-none");
     waitingRoomScreen.classList.remove("d-none");
     waitingRoomId.textContent = roomId.replace("room_", "");
   }
@@ -331,6 +357,30 @@ socket.on("joined_room", (data) => {
 
 // Join error event
 socket.on("join_error", (message) => {
+  console.log("Join error received:", message);
+
+  // Check if this is a "Quiz already started" error and we have valid session info
+  const session = JSON.parse(localStorage.getItem("studentSession") || "null");
+  if (
+    message.includes("Quiz already started") &&
+    session &&
+    session.playerName &&
+    session.studentId
+  ) {
+    console.log(
+      "Attempting to rejoin with session info after initial rejection"
+    );
+    // Try to rejoin - this should work if the student was previously in the room
+    setTimeout(() => {
+      socket.emit("join_room", {
+        roomId: session.roomId,
+        playerName: session.playerName,
+        studentId: session.studentId,
+      });
+    }, 1000); // Wait 1 second and try again
+    return;
+  }
+
   alert(`Error joining room: ${message}`);
   // Redirect to dashboard after alert
   window.location.hash = "#dashboard";
@@ -370,6 +420,7 @@ socket.on("new_question", (data) => {
     question,
     options,
     timeLimit,
+    remainingTime, // Add this
     questionId,
     currentScore: serverScore,
     currentStreak: serverStreak,
@@ -422,7 +473,11 @@ socket.on("new_question", (data) => {
     currentQuestionIndex + 1
   }`;
   document.getElementById("questionText").textContent = question;
-  document.getElementById("timerDisplay").textContent = `${timeLimit}s`;
+
+  // Use remaining time if available, otherwise use full time limit
+  const timerSeconds =
+    typeof remainingTime === "number" ? remainingTime : timeLimit;
+  document.getElementById("timerDisplay").textContent = `${timerSeconds}s`;
 
   // Show score if not first question
   if (currentQuestionIndex > 0) {
@@ -437,8 +492,8 @@ socket.on("new_question", (data) => {
     }
   }
 
-  // Start timer
-  startTimer(timeLimit);
+  // Start timer with remaining time
+  startTimer(timerSeconds);
 
   // Only increment question counter for next question if not rejoining
   if (typeof serverQuestionIndex !== "number") {
