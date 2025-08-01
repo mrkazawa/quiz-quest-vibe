@@ -493,7 +493,7 @@ socket.on("new_question", (data) => {
   }
 
   // Start timer with remaining time
-  startTimer(timerSeconds);
+  startTimer(timerSeconds, timeLimit);
 
   // Only increment question counter for next question if not rejoining
   if (typeof serverQuestionIndex !== "number") {
@@ -502,25 +502,30 @@ socket.on("new_question", (data) => {
 });
 
 // Start timer function
-function startTimer(seconds) {
+function startTimer(seconds, originalTimeLimit = null) {
   let timeLeft = seconds;
   const timerBar = document.getElementById("timerBar");
   const timerDisplay = document.getElementById("timerDisplay");
+
+  // Use original time limit for percentage calculation, fallback to seconds if not provided
+  const maxTime = originalTimeLimit || seconds;
 
   // Clear any existing timer
   if (timerInterval) {
     clearInterval(timerInterval);
   }
 
-  // Reset timer bar
-  timerBar.style.width = "100%";
+  // Set initial timer bar width based on remaining time vs original time limit
+  const initialPercentage = (timeLeft / maxTime) * 100;
+  timerBar.style.width = `${initialPercentage}%`;
 
   // Update timer every 100ms for smooth animation
   timerInterval = setInterval(() => {
     timeLeft -= 0.1;
 
-    const percentage = (timeLeft / seconds) * 100;
-    timerBar.style.width = `${percentage}%`;
+    // Calculate percentage based on original time limit, not remaining time
+    const percentage = (timeLeft / maxTime) * 100;
+    timerBar.style.width = `${Math.max(0, percentage)}%`;
     timerDisplay.textContent = `${Math.ceil(timeLeft)}s`;
 
     if (timeLeft <= 0) {

@@ -253,17 +253,56 @@ io.on("connection", (socket) => {
         remainingTime = Math.max(0, currentQuestionObj.timeLimit - elapsed);
       }
 
-      socket.emit("new_question", {
-        question: currentQuestionObj.question,
-        options: currentQuestionObj.options,
-        timeLimit: currentQuestionObj.timeLimit,
-        remainingTime: remainingTime, // Add remaining time
-        questionId: currentQuestionObj.id,
-        currentScore: player ? player.score : 0,
-        currentStreak: player ? player.streak : 0,
-        currentQuestionIndex: rooms[roomId].currentQuestionIndex,
-        totalQuestions: rooms[roomId].questionOrder.length,
-      });
+      // Check if question time has already expired (less than 1 second remaining)
+      if (remainingTime <= 1) {
+        // Question should have ended, but student is rejoining late
+        // Add a "no answer" entry for this student if they haven't answered
+        const hasAnswered = player.answers.some(
+          (a) => a.questionId === currentQuestionObj.id
+        );
+        if (!hasAnswered) {
+          player.answers.push({
+            questionId: currentQuestionObj.id,
+            answerId: null,
+            isCorrect: false,
+            timeTaken: currentQuestionObj.timeLimit,
+          });
+        }
+
+        // Send them directly to the question results
+        const questionResults = {
+          questionId: currentQuestionObj.id,
+          correctAnswer: currentQuestionObj.correctAnswer,
+          playerAnswers: Object.values(rooms[roomId].players).map((p) => {
+            const answer = p.answers.find(
+              (a) => a.questionId === currentQuestionObj.id
+            );
+            return {
+              playerId: p.id,
+              playerName: p.name,
+              studentId: p.studentId,
+              answerId: answer ? answer.answerId : null,
+              isCorrect: answer ? answer.isCorrect : false,
+              score: p.score,
+            };
+          }),
+        };
+
+        socket.emit("question_ended", questionResults);
+      } else {
+        // Question is still active, send normal question data
+        socket.emit("new_question", {
+          question: currentQuestionObj.question,
+          options: currentQuestionObj.options,
+          timeLimit: currentQuestionObj.timeLimit,
+          remainingTime: remainingTime, // Add remaining time
+          questionId: currentQuestionObj.id,
+          currentScore: player ? player.score : 0,
+          currentStreak: player ? player.streak : 0,
+          currentQuestionIndex: rooms[roomId].currentQuestionIndex,
+          totalQuestions: rooms[roomId].questionOrder.length,
+        });
+      }
     }
     // Notify everyone in the room that a new player joined
     io.to(roomId).emit("player_joined", {
