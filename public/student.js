@@ -37,6 +37,7 @@ let isAppNavigation = false; // Flag to track programmatic navigation vs page re
 // Hash-based routing: render correct screen on load/refresh
 function renderScreenFromHash() {
   const hash = window.location.hash;
+  console.log("renderScreenFromHash called with hash:", hash);
 
   // Always check hash query for room ID and update input
   function getRoomIdFromHashQuery() {
@@ -88,37 +89,48 @@ function renderScreenFromHash() {
       }
     }
   } else if (questionPattern.test(hash)) {
-    // Question state - validate session and show quiz question screen
+    // Question state - validate session and let server events handle screen rendering
     const match = hash.match(questionPattern);
     const roomId = match ? match[1] : null;
+    console.log(
+      "Question pattern matched, roomId:",
+      roomId,
+      "currentRoom:",
+      currentRoom
+    );
     if (validateQuizSession(roomId)) {
-      showScreen(quizQuestionScreen);
+      // Don't show screen here, let new_question event handle it
+      console.log("Validating question state, waiting for server response");
     }
   } else if (submitPattern.test(hash)) {
-    // Submit state - validate session and show quiz question screen with waiting message
+    // Submit state - validate session and let server events handle screen rendering
     const match = hash.match(submitPattern);
     const roomId = match ? match[1] : null;
+    console.log("Submit pattern matched, roomId:", roomId);
     if (validateQuizSession(roomId)) {
-      showScreen(quizQuestionScreen);
-      // Hide question and options, show waiting message
-      const questionOptionsContainer = document.getElementById(
-        "questionOptionsContainer"
-      );
-      if (questionOptionsContainer) {
-        questionOptionsContainer.classList.add("d-none");
-      }
-      document.getElementById("questionNumber").classList.add("d-none");
-      const waitingMsg = document.getElementById("waitingForResultMsg");
-      if (waitingMsg) {
-        waitingMsg.classList.remove("d-none");
-      }
+      // Don't show screen here, let new_question event handle it
+      console.log("Validating submit state, waiting for server response");
     }
   } else if (resultPattern.test(hash)) {
-    // Result state - validate session and show question results screen
+    // Result state - validate session and show result screen
     const match = hash.match(resultPattern);
     const roomId = match ? match[1] : null;
     if (validateQuizSession(roomId)) {
+      // Show result screen immediately and hide all others
       showScreen(questionResultsScreen);
+
+      // Set a placeholder message while waiting for server response
+      const answerResultMsg = document.getElementById("answerResultMsg");
+      if (answerResultMsg) {
+        answerResultMsg.className = "alert alert-info";
+        answerResultMsg.innerHTML =
+          '<i class="bi bi-clock"></i> Loading results...';
+      }
+
+      // Hide the question screen explicitly to prevent overlap
+      quizQuestionScreen.classList.add("d-none");
+
+      console.log("Validating result state, showing result screen");
     }
   } else if (finalPattern.test(hash)) {
     // Final state - validate session and show final results screen
@@ -250,8 +262,6 @@ if (savedName) playerNameInput.value = savedName;
 if (savedStudentId) studentIdInput.value = savedStudentId;
 if (savedRoomId) roomIdInput.value = savedRoomId;
 
-// ...existing code...
-
 // Handle join form submission
 joinForm.addEventListener("submit", (e) => {
   e.preventDefault();
@@ -329,6 +339,7 @@ roomIdInput.addEventListener("input", (e) => {
 // Joined room event
 socket.on("joined_room", (data) => {
   const { roomId, isActive } = data;
+  console.log("Joined room event received:", data);
 
   // Always update currentRoom and currentPlayerName on join (fixes refresh bug)
   currentRoom = roomId;
@@ -341,10 +352,12 @@ socket.on("joined_room", (data) => {
 
   if (isActive) {
     // Quiz is already in progress - don't change hash here, let new_question event handle it
+    console.log("Quiz is active, waiting for new_question event");
     quizQuestionScreen.classList.remove("d-none");
     joinQuizScreen.classList.add("d-none");
   } else {
     // Wait for quiz to start
+    console.log("Quiz not active, showing waiting room");
     isAppNavigation = true;
     window.location.hash = `#${roomId}/waiting_room`;
 
@@ -409,26 +422,115 @@ socket.on("player_joined", (data) => {
 
 // Quiz started event
 socket.on("quiz_started", () => {
+  console.log("Quiz started event received");
   currentQuestionIndex = 0;
   waitingRoomScreen.classList.add("d-none");
-  // The new question event will show the question screen
+  // Don't show the question screen here - wait for new_question event
+  // The new_question event will handle the UI update and hash change
 });
 
 // New question event
 socket.on("new_question", (data) => {
+  console.log("Student received new_question event:", data);
+  console.log("Current hash before processing:", window.location.hash);
+
   const {
     question,
     options,
     timeLimit,
-    remainingTime, // Add this
+    remainingTime,
     questionId,
     currentScore: serverScore,
     currentStreak: serverStreak,
     currentQuestionIndex: serverQuestionIndex,
+    hasAnswered: serverHasAnswered,
+    questionExpired: serverQuestionExpired,
   } = data;
   currentQuestion = data;
+
+  // Check current hash state
+  const currentHash = window.location.hash;
+  const submitPattern = /^#(\d{6})\/submit\/(\w+)$/;
+  const questionPattern = /^#(\d{6})\/question\/(\w+)$/;
+  const resultPattern = /^#(\d{6})\/result\/(\w+)$/;
+  const isOnSubmitHash = submitPattern.test(currentHash);
+  const isOnQuestionHash = questionPattern.test(currentHash);
+  const isOnResultHash = resultPattern.test(currentHash);
+
+  console.log(
+    "Current hash:",
+    currentHash,
+    "isOnResultHash:",
+    isOnResultHash,
+    "questionId:",
+    questionId
+  );
+
+  // If student is on result page for a DIFFERENT question, don't override it
+  // They should stay on the result page until question_ended event is received
+  let resultQuestionId = null;
+  if (isOnResultHash) {
+    const resultMatch = currentHash.match(resultPattern);
+    resultQuestionId = resultMatch ? resultMatch[2] : null;
+
+    // If the result page is for a different question than the new question,
+    // it means they're viewing results and should stay there
+    if (resultQuestionId && resultQuestionId !== questionId) {
+      console.log(
+        `Student is viewing results for question ${resultQuestionId}, but new question is ${questionId} - updating to new question`
+      );
+      // This is a NEW question, not the same question, so we should proceed to show it
+      // Don't return here, let the normal flow continue
+    }
+  }
+
+  // Reset hasAnswered for new question (important!)
   hasAnswered = false;
   optionsLocked = false;
+
+  // Use server's hasAnswered status if available, otherwise use false for new question
+  if (typeof serverHasAnswered === "boolean") {
+    hasAnswered = serverHasAnswered;
+    optionsLocked = serverHasAnswered;
+  }
+
+  // State detection logic based on server information
+  if (
+    typeof serverHasAnswered === "boolean" &&
+    typeof serverQuestionExpired === "boolean"
+  ) {
+    // If student has answered AND question time has expired, show results
+    if (serverHasAnswered && serverQuestionExpired) {
+      // Should be on result page - but we need to trigger question_ended event
+      // Don't change hash here, let question_ended event handler manage it
+      console.log(
+        "Question has expired and student has answered - waiting for results"
+      );
+      return; // Exit early, wait for question_ended event
+    }
+    // If student has answered but time hasn't expired, show submit state
+    else if (serverHasAnswered && !serverQuestionExpired) {
+      isAppNavigation = true;
+      window.location.hash = `#${currentRoom}/submit/${questionId}`;
+    }
+    // If student hasn't answered and time hasn't expired, show question
+    else if (!serverHasAnswered && !serverQuestionExpired) {
+      isAppNavigation = true;
+      window.location.hash = `#${currentRoom}/question/${questionId}`;
+    }
+    // If student hasn't answered but time has expired, they get "no answer" - wait for results
+    else if (!serverHasAnswered && serverQuestionExpired) {
+      console.log(
+        "Question has expired and student didn't answer - waiting for results"
+      );
+      return; // Exit early, wait for question_ended event
+    }
+  } else {
+    // Fallback logic when server doesn't provide complete info
+    // For new questions, always go to question hash - this is a NEW question
+    isAppNavigation = true;
+    window.location.hash = `#${currentRoom}/question/${questionId}`;
+  }
 
   // If server sent currentScore/currentStreak/currentQuestionIndex, use them (for rejoin/refresh)
   if (typeof serverScore === "number") currentScore = serverScore;
@@ -436,36 +538,58 @@ socket.on("new_question", (data) => {
   if (typeof serverQuestionIndex === "number")
     currentQuestionIndex = serverQuestionIndex;
 
-  // Update hash-based URL for question state
-  isAppNavigation = true;
-  window.location.hash = `#${currentRoom}/question/${questionId}`;
+  console.log(
+    "About to update UI and hash. Current room:",
+    currentRoom,
+    "questionId:",
+    questionId
+  );
 
-  // Update UI
+  // Update UI - always show new question when it's a different question
   waitingRoomScreen.classList.add("d-none");
+
+  // Always update UI for new questions (different questionId)
+  console.log("Updating UI to show question screen for new question");
   questionResultsScreen.classList.add("d-none");
   quizQuestionScreen.classList.remove("d-none");
 
-  // Show question and options container
+  // Show/hide question and options container based on submit state
   const questionOptionsContainer = document.getElementById(
     "questionOptionsContainer"
   );
-  if (questionOptionsContainer) {
-    questionOptionsContainer.classList.remove("d-none");
-  }
-  document.getElementById("questionNumber").classList.remove("d-none");
+  const waitingMsg = document.getElementById("waitingForResultMsg");
 
-  // Reset options
+  if (hasAnswered) {
+    // Student has already submitted - show waiting message
+    if (questionOptionsContainer) {
+      questionOptionsContainer.classList.add("d-none");
+    }
+    document.getElementById("questionNumber").classList.add("d-none");
+    if (waitingMsg) {
+      waitingMsg.classList.remove("d-none");
+    }
+  } else {
+    // Student hasn't submitted - show question and options
+    if (questionOptionsContainer) {
+      questionOptionsContainer.classList.remove("d-none");
+    }
+    document.getElementById("questionNumber").classList.remove("d-none");
+    if (waitingMsg) {
+      waitingMsg.classList.add("d-none");
+    }
+  }
+
+  // Reset options (but disable them if already answered)
   for (let i = 0; i < 4; i++) {
     const optionBtn = document.getElementById(`option${i}`);
-    optionBtn.classList.remove("correct-answer", "wrong-answer", "d-none");
-    optionBtn.disabled = false;
+    optionBtn.classList.remove(
+      "correct-answer",
+      "wrong-answer",
+      "d-none",
+      "selected"
+    );
+    optionBtn.disabled = hasAnswered;
     optionBtn.textContent = options[i];
-  }
-
-  // Hide waiting message
-  const waitingMsg = document.getElementById("waitingForResultMsg");
-  if (waitingMsg) {
-    waitingMsg.classList.add("d-none");
   }
 
   // Set question text and timer
@@ -609,9 +733,14 @@ socket.on("question_ended", (data) => {
     clearInterval(timerInterval);
   }
 
+  // Update current question data so we can use it for refresh
+  if (currentQuestion) {
+    currentQuestion.questionId = data.questionId;
+  }
+
   // Update hash-based URL for result state
   isAppNavigation = true;
-  window.location.hash = `#${currentRoom}/result/${currentQuestion.questionId}`;
+  window.location.hash = `#${currentRoom}/result/${data.questionId}`;
 
   // Hide waiting for result message
   const waitingMsg = document.getElementById("waitingForResultMsg");
@@ -622,8 +751,6 @@ socket.on("question_ended", (data) => {
   // Update UI
   quizQuestionScreen.classList.add("d-none");
   questionResultsScreen.classList.remove("d-none");
-
-  // Header now shows only horizontal logo - no text title updates needed
 
   // Update results screen
   const answerResultMsg = document.getElementById("answerResultMsg");
@@ -644,16 +771,24 @@ socket.on("question_ended", (data) => {
   }
 
   // Set message based on whether user answered
-  if (hasAnswered) {
-    const lastAnswer = data.playerAnswers.find((a) => a.playerId === socket.id);
-    if (lastAnswer && lastAnswer.isCorrect) {
+  const lastAnswer = data.playerAnswers.find((a) => a.playerId === socket.id);
+  if (lastAnswer) {
+    // Update the current score and streak from server data
+    currentScore = lastAnswer.score;
+    resultScore.textContent = currentScore;
+
+    if (hasAnswered && lastAnswer.isCorrect) {
       answerResultMsg.className = "alert alert-success";
       answerResultMsg.innerHTML =
         '<i class="bi bi-check-circle"></i> Your answer was correct!';
-    } else {
+    } else if (hasAnswered && !lastAnswer.isCorrect) {
       answerResultMsg.className = "alert alert-danger";
       answerResultMsg.innerHTML =
         '<i class="bi bi-x-circle"></i> Your answer was incorrect!';
+    } else {
+      answerResultMsg.className = "alert alert-warning";
+      answerResultMsg.innerHTML =
+        '<i class="bi bi-exclamation-triangle"></i> You did not answer in time!';
     }
   } else {
     answerResultMsg.className = "alert alert-warning";

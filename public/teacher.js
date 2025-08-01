@@ -435,6 +435,8 @@ socket.on("quiz_started", () => {
 
 // New question event
 socket.on("new_question", (data) => {
+  console.log("Teacher received new_question event:", data);
+
   const { question, options, timeLimit, questionId } = data;
   currentQuestion = data;
 
@@ -594,6 +596,7 @@ socket.on("question_ended", (data) => {
 
 // Next question button
 nextQuestionBtn.addEventListener("click", () => {
+  console.log("Next Question button clicked, currentRoom:", currentRoom);
   if (currentRoom) {
     // If on last question, finalize quiz and go to final screen
     const totalQuestions =
@@ -607,14 +610,21 @@ nextQuestionBtn.addEventListener("click", () => {
       typeof currentQuestion.currentQuestionIndex === "number"
         ? currentQuestion.currentQuestionIndex + 1
         : currentQuestionIndex;
+
+    console.log(`Current question: ${currentNum}, Total: ${totalQuestions}`);
+
     if (currentNum === totalQuestions) {
       // Finalize quiz
+      console.log("Finalizing quiz - sending next_question to end quiz");
       socket.emit("next_question", currentRoom);
       window.location.hash = `#${currentRoom}/final`;
     } else {
+      console.log("Moving to next question - sending next_question");
       socket.emit("next_question", currentRoom);
       // Hash will be set in new_question event
     }
+  } else {
+    console.log("No current room set");
   }
 });
 

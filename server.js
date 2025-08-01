@@ -140,13 +140,15 @@ io.on("connection", (socket) => {
       quizId: quizId,
       questions: questionsMap, // now a map
       questionOrder: questionSet.questions.map((q) => q.id), // preserve order
-      players: {},
+      players: {}, // Now indexed by studentId instead of socket.id
+      socketToStudent: {}, // Map socket.id to studentId for quick lookups
       studentHistory: new Set(), // Track all students who have ever joined this room
       isActive: false,
       currentQuestionIndex: 0,
       results: {},
       hostId: socket.id,
       createdAt: Date.now(),
+      questionEndedState: false, // Track if current question has ended
     };
 
     socket.join(roomId);
@@ -165,15 +167,12 @@ io.on("connection", (socket) => {
     }
 
     // Check if studentId is already present in the room (for rejoining)
-    const isRejoin = Object.values(rooms[roomId].players).some(
-      (p) => p.studentId === studentId
-    );
+    const isRejoin = rooms[roomId].players[studentId] !== undefined;
 
     // Check if student has ever been in this room (even if disconnected)
     const hasBeenInRoom = rooms[roomId].studentHistory.has(studentId);
 
     // For active quizzes, allow rejoining if student was previously in the room
-    // Even if their socket was disconnected and they're not currently in the players list
     if (rooms[roomId].isActive && !isRejoin && !hasBeenInRoom) {
       socket.emit("join_error", "Quiz already started. Cannot join this room.");
       return;
@@ -182,49 +181,23 @@ io.on("connection", (socket) => {
     // Add student to history when they join (for future rejoins)
     rooms[roomId].studentHistory.add(studentId);
 
-    // Remove any previous socket for this studentId in the room
-    for (const sid in rooms[roomId].players) {
-      const p = rooms[roomId].players[sid];
-      if (p.studentId === studentId && sid !== socket.id) {
-        // Log student leaving
-        console.log(
-          `Player ${p.name} (Student ID: ${p.studentId}) left room ${roomId}`
-        );
-        // Emit player_left event to room
-        io.to(roomId).emit("player_left", {
-          playerId: sid,
-          players: Object.values(rooms[roomId].players)
-            .filter((x) => x.id !== sid)
-            .map((x) => ({ id: x.id, name: x.name, score: x.score })),
-        });
-        delete rooms[roomId].players[sid];
-      }
-    }
-
     // Add player to the room
     socket.join(roomId);
 
-    // If rejoining, restore previous player state if exists
-    let prevPlayer = Object.values(rooms[roomId].players).find(
-      (p) => p.studentId === studentId
-    );
-    if (prevPlayer) {
-      // Remove previous player entry (should be only one left after above loop)
-      delete rooms[roomId].players[prevPlayer.id];
-      rooms[roomId].players[socket.id] = {
-        id: socket.id,
-        name: playerName,
-        studentId: studentId,
-        score: prevPlayer.score,
-        streak: prevPlayer.streak,
-        answers: prevPlayer.answers,
-      };
+    // Update socket mapping
+    rooms[roomId].socketToStudent[socket.id] = studentId;
+
+    // If rejoining, update the existing player data with new socket info
+    if (isRejoin) {
+      // Update existing player with new socket ID
+      rooms[roomId].players[studentId].socketId = socket.id;
+      rooms[roomId].players[studentId].name = playerName; // Update name in case it changed
     } else {
-      // New join
-      rooms[roomId].players[socket.id] = {
-        id: socket.id,
-        name: playerName,
+      // New join - create new player entry
+      rooms[roomId].players[studentId] = {
+        socketId: socket.id,
         studentId: studentId,
+        name: playerName,
         score: 0,
         streak: 0,
         answers: [],
@@ -242,7 +215,12 @@ io.on("connection", (socket) => {
       const currentQuestionId =
         rooms[roomId].questionOrder[rooms[roomId].currentQuestionIndex];
       const currentQuestionObj = rooms[roomId].questions[currentQuestionId];
-      const player = rooms[roomId].players[socket.id];
+      const player = rooms[roomId].players[studentId]; // Use studentId as key
+
+      // Check if this student has already answered this question
+      const hasAnswered = player.answers.some(
+        (a) => a.questionId === currentQuestionObj.id
+      );
 
       // Calculate remaining time if question is in progress
       let remainingTime = currentQuestionObj.timeLimit;
@@ -253,13 +231,11 @@ io.on("connection", (socket) => {
         remainingTime = Math.max(0, currentQuestionObj.timeLimit - elapsed);
       }
 
-      // Check if question time has already expired (less than 1 second remaining)
-      if (remainingTime <= 1) {
-        // Question should have ended, but student is rejoining late
+      // Check if question has ended or time has expired
+      if (rooms[roomId].questionEndedState || remainingTime <= 1) {
+        // Question has ended, send question_ended event instead
+
         // Add a "no answer" entry for this student if they haven't answered
-        const hasAnswered = player.answers.some(
-          (a) => a.questionId === currentQuestionObj.id
-        );
         if (!hasAnswered) {
           player.answers.push({
             questionId: currentQuestionObj.id,
@@ -278,7 +254,7 @@ io.on("connection", (socket) => {
               (a) => a.questionId === currentQuestionObj.id
             );
             return {
-              playerId: p.id,
+              playerId: p.socketId, // Use socketId for client identification
               playerName: p.name,
               studentId: p.studentId,
               answerId: answer ? answer.answerId : null,
@@ -301,6 +277,8 @@ io.on("connection", (socket) => {
           currentStreak: player ? player.streak : 0,
           currentQuestionIndex: rooms[roomId].currentQuestionIndex,
           totalQuestions: rooms[roomId].questionOrder.length,
+          hasAnswered: hasAnswered, // Add this to help client determine state
+          questionExpired: remainingTime <= 1, // Add this to indicate if question time is up
         });
       }
     }
@@ -310,7 +288,7 @@ io.on("connection", (socket) => {
       playerName,
       studentId,
       players: Object.values(rooms[roomId].players).map((p) => ({
-        id: p.id,
+        id: p.socketId,
         name: p.name,
         studentId: p.studentId,
         score: p.score,
@@ -346,17 +324,41 @@ io.on("connection", (socket) => {
     rooms[roomId].currentQuestionIndex = 0;
     rooms[roomId].questionStartTime = Date.now(); // Track when question starts
 
+    // Reset question ended state for new quiz
+    rooms[roomId].questionEndedState = false;
+
     // Get the current questionId from order
     const currentQuestionId =
       rooms[roomId].questionOrder[rooms[roomId].currentQuestionIndex];
     const currentQuestionObj = rooms[roomId].questions[currentQuestionId];
 
     io.to(roomId).emit("quiz_started", { roomId });
-    io.to(roomId).emit("new_question", {
+
+    // Send new question to all connected students with their individual data
+    Object.values(rooms[roomId].players).forEach((player) => {
+      if (player.socketId) {
+        io.to(player.socketId).emit("new_question", {
+          question: currentQuestionObj.question,
+          options: currentQuestionObj.options,
+          timeLimit: currentQuestionObj.timeLimit,
+          remainingTime: currentQuestionObj.timeLimit,
+          questionId: currentQuestionObj.id,
+          currentScore: player.score,
+          currentStreak: player.streak,
+          currentQuestionIndex: rooms[roomId].currentQuestionIndex,
+          totalQuestions: rooms[roomId].questionOrder.length,
+          hasAnswered: false,
+          questionExpired: false,
+        });
+      }
+    });
+
+    // Also send to teacher/host
+    io.to(rooms[roomId].hostId).emit("new_question", {
       question: currentQuestionObj.question,
       options: currentQuestionObj.options,
       timeLimit: currentQuestionObj.timeLimit,
-      remainingTime: currentQuestionObj.timeLimit, // Full time for new question
+      remainingTime: currentQuestionObj.timeLimit,
       questionId: currentQuestionObj.id,
       currentQuestionIndex: rooms[roomId].currentQuestionIndex,
       totalQuestions: rooms[roomId].questionOrder.length,
@@ -378,16 +380,27 @@ io.on("connection", (socket) => {
     if (
       !rooms[roomId] ||
       !rooms[roomId].isActive ||
-      !rooms[roomId].players[socket.id]
+      !rooms[roomId].socketToStudent[socket.id]
     ) {
       socket.emit("answer_error", "Cannot submit answer at this time");
       return;
     }
 
+    const studentId = rooms[roomId].socketToStudent[socket.id];
     const currentQuestionId =
       rooms[roomId].questionOrder[rooms[roomId].currentQuestionIndex];
     const currentQuestionObj = rooms[roomId].questions[currentQuestionId];
-    const player = rooms[roomId].players[socket.id];
+    const player = rooms[roomId].players[studentId];
+
+    // Check if player has already answered this question (prevent duplicate submissions)
+    const hasAlreadyAnswered = player.answers.some(
+      (a) => a.questionId === currentQuestionObj.id
+    );
+
+    if (hasAlreadyAnswered) {
+      socket.emit("answer_error", "You have already answered this question");
+      return;
+    }
 
     // Calculate time taken (could be improved with more accurate timing)
     const timeTaken = Math.random() * currentQuestionObj.timeLimit; // Simulated time taken
@@ -463,17 +476,24 @@ io.on("connection", (socket) => {
       return;
     }
 
-    // Remove student from room if present
-    const player = rooms[roomId].players[socket.id];
-    if (player) {
+    // Check if this socket belongs to a student and remove them
+    const studentId = rooms[roomId].socketToStudent?.[socket.id];
+    if (studentId && rooms[roomId].players[studentId]) {
+      const player = rooms[roomId].players[studentId];
       console.log(
         `Player ${player.name} (Student ID: ${player.studentId}) left room ${roomId}`
       );
-      delete rooms[roomId].players[socket.id];
+
+      // Remove socket mapping
+      delete rooms[roomId].socketToStudent[socket.id];
+
+      // Remove player entirely when they explicitly leave
+      delete rooms[roomId].players[studentId];
+
       io.to(roomId).emit("player_left", {
         playerId: socket.id,
         players: Object.values(rooms[roomId].players).map((p) => ({
-          id: p.id,
+          id: p.socketId,
           name: p.name,
           score: p.score,
         })),
@@ -533,7 +553,7 @@ io.on("connection", (socket) => {
       roomId,
       isActive: rooms[roomId].isActive,
       players: Object.values(rooms[roomId].players).map((p) => ({
-        id: p.id,
+        id: p.socketId, // Use socketId for compatibility
         name: p.name,
         studentId: p.studentId,
         score: p.score,
@@ -545,10 +565,21 @@ io.on("connection", (socket) => {
       const currentQuestionId =
         rooms[roomId].questionOrder[rooms[roomId].currentQuestionIndex];
       const currentQuestionObj = rooms[roomId].questions[currentQuestionId];
+
+      // Calculate remaining time if question is in progress
+      let remainingTime = currentQuestionObj.timeLimit;
+      if (rooms[roomId].questionStartTime) {
+        const elapsed = Math.floor(
+          (Date.now() - rooms[roomId].questionStartTime) / 1000
+        );
+        remainingTime = Math.max(0, currentQuestionObj.timeLimit - elapsed);
+      }
+
       socket.emit("new_question", {
         question: currentQuestionObj.question,
         options: currentQuestionObj.options,
         timeLimit: currentQuestionObj.timeLimit,
+        remainingTime: remainingTime,
         questionId: currentQuestionObj.id,
         currentQuestionIndex: rooms[roomId].currentQuestionIndex,
         totalQuestions: rooms[roomId].questionOrder.length,
@@ -562,58 +593,60 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
 
-    // Remove player from any rooms they were in
+    // Remove socket mapping and handle disconnection
     for (const roomId in rooms) {
-      if (rooms[roomId].players[socket.id]) {
-        // Log student leaving
-        const player = rooms[roomId].players[socket.id];
-        if (player) {
-          console.log(
-            `Player ${player.name} (Student ID: ${player.studentId}) left room ${roomId}`
-          );
-        }
+      const room = rooms[roomId];
 
-        delete rooms[roomId].players[socket.id];
+      // Check if this socket was mapped to a student
+      const studentId = room.socketToStudent?.[socket.id];
 
-        // Notify others that player left
-        io.to(roomId).emit("player_left", {
+      if (studentId && room.players[studentId]) {
+        const player = room.players[studentId];
+        console.log(
+          `Player ${player.name} (Student ID: ${player.studentId}) disconnected from room ${roomId}`
+        );
+
+        // Remove socket mapping but keep player data for potential reconnection
+        delete room.socketToStudent[socket.id];
+
+        // Update player's socket ID to null (they can reconnect later)
+        room.players[studentId].socketId = null;
+
+        // Notify others that player disconnected (but don't remove from player list)
+        io.to(roomId).emit("player_disconnected", {
           playerId: socket.id,
-          players: Object.values(rooms[roomId].players).map((p) => ({
-            id: p.id,
-            name: p.name,
-            score: p.score,
-          })),
+          studentId: studentId,
+          playerName: player.name,
         });
+      }
 
-        // If this was the host, end the quiz
-        if (rooms[roomId].hostId === socket.id) {
-          rooms[roomId].isActive = false;
-          io.to(roomId).emit("quiz_ended", { message: "Host disconnected" });
+      // If this was the host, end the quiz
+      if (room.hostId === socket.id) {
+        room.isActive = false;
+        io.to(roomId).emit("quiz_ended", { message: "Host disconnected" });
 
-          // Clear any active timers
-          if (rooms[roomId].timer) {
-            clearTimeout(rooms[roomId].timer);
-          }
+        // Clear any active timers
+        if (room.timer) {
+          clearTimeout(room.timer);
         }
 
-        // Only delete the room if the host has also left
-        if (rooms[roomId].hostId === socket.id) {
-          delete rooms[roomId];
-          console.log(`Room ${roomId} was deleted because the teacher left`);
-        } else if (Object.keys(rooms[roomId].players).length === 0) {
-          // If all players left but host is still connected, just log it
-          console.log(
-            `All players left room ${roomId}, but teacher is still connected`
-          );
-        }
+        // Delete the room when host disconnects
+        delete rooms[roomId];
+        console.log(`Room ${roomId} was deleted because the teacher left`);
       }
     }
+
+    // Remove the socket from the room
+    socket.leave();
   });
 });
 
 // Function to end the current question and show results
 function endQuestion(roomId) {
   if (!rooms[roomId]) return;
+
+  // Mark question as ended
+  rooms[roomId].questionEndedState = true;
 
   // Clear question start time
   rooms[roomId].questionStartTime = null;
@@ -647,7 +680,7 @@ function endQuestion(roomId) {
         (a) => a.questionId === currentQuestionObj.id
       );
       return {
-        playerId: p.id,
+        playerId: p.socketId, // Use socketId for client identification
         playerName: p.name,
         studentId: p.studentId,
         answerId: answer ? answer.answerId : null,
@@ -671,15 +704,25 @@ function endQuestion(roomId) {
 
 // Function to move to the next question
 function moveToNextQuestion(roomId) {
-  if (!rooms[roomId] || !rooms[roomId].isActive) return;
+  if (!rooms[roomId] || !rooms[roomId].isActive) {
+    console.log(
+      `Cannot move to next question - room ${roomId} not active or doesn't exist`
+    );
+    return;
+  }
 
   rooms[roomId].currentQuestionIndex++;
 
   const totalQuestions = rooms[roomId].questionOrder.length;
   const currentQuestionNumber = rooms[roomId].currentQuestionIndex + 1;
 
+  console.log(
+    `Moving to question ${currentQuestionNumber} out of ${totalQuestions} in room ${roomId}`
+  );
+
   // Check if we've reached the end of the quiz
   if (rooms[roomId].currentQuestionIndex >= totalQuestions) {
+    console.log(`Quiz completed in room ${roomId}, ending quiz`);
     endQuiz(roomId);
     return;
   }
@@ -692,19 +735,51 @@ function moveToNextQuestion(roomId) {
   // Track when the new question starts
   rooms[roomId].questionStartTime = Date.now();
 
-  io.to(roomId).emit("new_question", {
+  // Reset question ended state for new question
+  rooms[roomId].questionEndedState = false;
+
+  console.log(
+    `Sending new question ${nextQuestionObj.id} to ${
+      Object.keys(rooms[roomId].players).length
+    } players`
+  );
+
+  // Send new question to all connected students
+  Object.values(rooms[roomId].players).forEach((player) => {
+    if (player.socketId) {
+      // Only send to connected students
+      console.log(
+        `Sending new_question to student ${player.name} (${player.socketId})`
+      );
+      io.to(player.socketId).emit("new_question", {
+        question: nextQuestionObj.question,
+        options: nextQuestionObj.options,
+        timeLimit: nextQuestionObj.timeLimit,
+        remainingTime: nextQuestionObj.timeLimit, // Full time for new question
+        questionId: nextQuestionObj.id,
+        currentScore: player.score,
+        currentStreak: player.streak,
+        currentQuestionIndex: rooms[roomId].currentQuestionIndex,
+        totalQuestions: totalQuestions,
+        hasAnswered: false, // Reset for new question
+        questionExpired: false, // New question, not expired
+      });
+    } else {
+      console.log(`Player ${player.name} has no socketId, skipping`);
+    }
+  });
+
+  // Also send to teacher/host
+  console.log(`Sending new_question to teacher (${rooms[roomId].hostId})`);
+  io.to(rooms[roomId].hostId).emit("new_question", {
     question: nextQuestionObj.question,
     options: nextQuestionObj.options,
     timeLimit: nextQuestionObj.timeLimit,
-    remainingTime: nextQuestionObj.timeLimit, // Full time for new question
+    remainingTime: nextQuestionObj.timeLimit,
     questionId: nextQuestionObj.id,
     currentQuestionIndex: rooms[roomId].currentQuestionIndex,
     totalQuestions: totalQuestions,
   });
-
-  console.log(
-    `Moving to question ${currentQuestionNumber} out of ${totalQuestions} in room ${roomId}`
-  );
 
   // Set a timer for this question
   const timer = setTimeout(() => {
@@ -724,7 +799,7 @@ function endQuiz(roomId) {
     .sort((a, b) => b.score - a.score)
     .map((p, index) => ({
       rank: index + 1,
-      playerId: p.id,
+      playerId: p.socketId, // Use socketId instead of p.id
       playerName: p.name,
       studentId: p.studentId,
       score: p.score,
