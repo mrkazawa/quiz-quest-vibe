@@ -568,6 +568,8 @@ socket.on("new_question", (data) => {
     if (waitingMsg) {
       waitingMsg.classList.remove("d-none");
     }
+    // Hide score info when in submit state
+    scoreInfo.classList.add("d-none");
   } else {
     // Student hasn't submitted - show question and options
     if (questionOptionsContainer) {
@@ -576,6 +578,18 @@ socket.on("new_question", (data) => {
     document.getElementById("questionNumber").classList.remove("d-none");
     if (waitingMsg) {
       waitingMsg.classList.add("d-none");
+    }
+    // Show score if not first question and not in submit state
+    if (currentQuestionIndex > 0) {
+      scoreInfo.classList.remove("d-none");
+      document.getElementById("currentScore").textContent = currentScore;
+
+      if (currentStreak > 1) {
+        streakContainer.classList.remove("d-none");
+        streakValue.textContent = currentStreak;
+      } else {
+        streakContainer.classList.add("d-none");
+      }
     }
   }
 
@@ -602,19 +616,6 @@ socket.on("new_question", (data) => {
   const timerSeconds =
     typeof remainingTime === "number" ? remainingTime : timeLimit;
   document.getElementById("timerDisplay").textContent = `${timerSeconds}s`;
-
-  // Show score if not first question
-  if (currentQuestionIndex > 0) {
-    scoreInfo.classList.remove("d-none");
-    document.getElementById("currentScore").textContent = currentScore;
-
-    if (currentStreak > 1) {
-      streakContainer.classList.remove("d-none");
-      streakValue.textContent = currentStreak;
-    } else {
-      streakContainer.classList.add("d-none");
-    }
-  }
 
   // Start timer with remaining time
   startTimer(timerSeconds, timeLimit);
@@ -704,6 +705,9 @@ for (let i = 0; i < 4; i++) {
       questionOptionsContainer.classList.add("d-none");
     }
     document.getElementById("questionNumber").classList.add("d-none");
+
+    // Hide score info in submit state
+    scoreInfo.classList.add("d-none");
 
     // Update hash-based URL for submit state
     isAppNavigation = true;
