@@ -245,7 +245,7 @@ io.on("connection", (socket) => {
           });
         }
 
-        // Send them directly to the question results
+        // Send them directly to the question results with complete data
         const questionResults = {
           questionId: currentQuestionObj.id,
           correctAnswer: currentQuestionObj.correctAnswer,
@@ -264,6 +264,9 @@ io.on("connection", (socket) => {
           }),
         };
 
+        console.log(
+          `Sending question_ended results to rejoining student ${player.name} for question ${currentQuestionObj.id}`
+        );
         socket.emit("question_ended", questionResults);
       } else {
         // Question is still active, send normal question data

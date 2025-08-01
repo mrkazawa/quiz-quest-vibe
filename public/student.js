@@ -119,18 +119,23 @@ function renderScreenFromHash() {
       // Show result screen immediately and hide all others
       showScreen(questionResultsScreen);
 
-      // Set a placeholder message while waiting for server response
-      const answerResultMsg = document.getElementById("answerResultMsg");
-      if (answerResultMsg) {
-        answerResultMsg.className = "alert alert-info";
-        answerResultMsg.innerHTML =
-          '<i class="bi bi-clock"></i> Loading results...';
+      // Only set placeholder if this is a page refresh (not programmatic navigation)
+      if (!isAppNavigation) {
+        const answerResultMsg = document.getElementById("answerResultMsg");
+        if (answerResultMsg) {
+          answerResultMsg.className = "alert alert-info";
+          answerResultMsg.innerHTML =
+            '<i class="bi bi-clock"></i> Loading results...';
+        }
       }
 
       // Hide the question screen explicitly to prevent overlap
       quizQuestionScreen.classList.add("d-none");
 
       console.log("Validating result state, showing result screen");
+
+      // The server will automatically send question_ended event when we rejoin
+      // if the question has already ended, which will populate the results
     }
   } else if (finalPattern.test(hash)) {
     // Final state - validate session and show final results screen
@@ -169,7 +174,7 @@ function showDashboardScreen() {
 function validateQuizSession(roomId) {
   // Only validate on page refresh, not on programmatic navigation
   if (isAppNavigation) {
-    isAppNavigation = false; // Reset flag
+    // Don't reset flag here - let it be reset at the end of the navigation process
     return true;
   }
 
@@ -781,11 +786,14 @@ socket.on("question_ended", (data) => {
     currentScore = lastAnswer.score;
     resultScore.textContent = currentScore;
 
-    if (hasAnswered && lastAnswer.isCorrect) {
+    // Determine if this student actually submitted an answer (not null)
+    const studentDidAnswer = lastAnswer.answerId !== null;
+
+    if (studentDidAnswer && lastAnswer.isCorrect) {
       answerResultMsg.className = "alert alert-success";
       answerResultMsg.innerHTML =
         '<i class="bi bi-check-circle"></i> Your answer was correct!';
-    } else if (hasAnswered && !lastAnswer.isCorrect) {
+    } else if (studentDidAnswer && !lastAnswer.isCorrect) {
       answerResultMsg.className = "alert alert-danger";
       answerResultMsg.innerHTML =
         '<i class="bi bi-x-circle"></i> Your answer was incorrect!';
@@ -799,6 +807,11 @@ socket.on("question_ended", (data) => {
     answerResultMsg.innerHTML =
       '<i class="bi bi-exclamation-triangle"></i> You did not answer in time!';
   }
+
+  // Reset isAppNavigation flag after all UI updates are complete
+  setTimeout(() => {
+    isAppNavigation = false;
+  }, 100);
 });
 
 // Quiz ended event
