@@ -24,9 +24,16 @@ function renderScreenFromHash() {
   }
   getRoomIdFromHashQuery();
 
-  if (/^#(\d{6})\/waiting_room$/.test(hash)) {
+  // Quiz progress state patterns
+  const waitingRoomPattern = /^#(\d{6})\/waiting_room$/;
+  const questionPattern = /^#(\d{6})\/question\/(\w+)$/;
+  const submitPattern = /^#(\d{6})\/submit\/(\w+)$/;
+  const resultPattern = /^#(\d{6})\/result\/(\w+)$/;
+  const finalPattern = /^#(\d{6})\/final$/;
+
+  if (waitingRoomPattern.test(hash)) {
     // Extract roomId from hash
-    const match = hash.match(/^#(\d{6})\/waiting_room$/);
+    const match = hash.match(waitingRoomPattern);
     const roomId = match ? match[1] : null;
     if (roomId) {
       // Restore session info from localStorage
@@ -39,15 +46,8 @@ function renderScreenFromHash() {
         session.studentId &&
         session.roomId === roomId
       ) {
-        // Rejoin the room as student
-        socket.emit("join_room", {
-          roomId: roomId,
-          playerName: session.playerName,
-          studentId: session.studentId,
-        });
         // Show waiting room UI
-        joinQuizScreen.classList.add("d-none");
-        waitingRoomScreen.classList.remove("d-none");
+        showScreen(waitingRoomScreen);
         waitingRoomId.textContent = roomId;
       } else {
         // If info missing, go back to dashboard
@@ -55,10 +55,46 @@ function renderScreenFromHash() {
         showDashboardScreen();
       }
     }
+  } else if (questionPattern.test(hash)) {
+    // Question state - show quiz question screen
+    showScreen(quizQuestionScreen);
+  } else if (submitPattern.test(hash)) {
+    // Submit state - show quiz question screen with waiting message
+    showScreen(quizQuestionScreen);
+    // Hide question and options, show waiting message
+    const questionOptionsContainer = document.getElementById(
+      "questionOptionsContainer"
+    );
+    if (questionOptionsContainer) {
+      questionOptionsContainer.classList.add("d-none");
+    }
+    document.getElementById("questionNumber").classList.add("d-none");
+    const waitingMsg = document.getElementById("waitingForResultMsg");
+    if (waitingMsg) {
+      waitingMsg.classList.remove("d-none");
+    }
+  } else if (resultPattern.test(hash)) {
+    // Result state - show question results screen
+    showScreen(questionResultsScreen);
+  } else if (finalPattern.test(hash)) {
+    // Final state - show final results screen
+    showScreen(finalResultsScreen);
   } else {
     // Default: show dashboard/join screen
     showDashboardScreen();
   }
+}
+
+function showScreen(targetScreen) {
+  // Hide all screens
+  joinQuizScreen.classList.add("d-none");
+  waitingRoomScreen.classList.add("d-none");
+  quizQuestionScreen.classList.add("d-none");
+  questionResultsScreen.classList.add("d-none");
+  finalResultsScreen.classList.add("d-none");
+
+  // Show target screen
+  targetScreen.classList.remove("d-none");
 }
 
 function showDashboardScreen() {
@@ -291,6 +327,9 @@ socket.on("new_question", (data) => {
   if (typeof serverQuestionIndex === "number")
     currentQuestionIndex = serverQuestionIndex;
 
+  // Update hash-based URL for question state
+  window.location.hash = `#${currentRoom}/question/${questionId}`;
+
   // Update UI
   waitingRoomScreen.classList.add("d-none");
   questionResultsScreen.classList.add("d-none");
@@ -423,6 +462,9 @@ for (let i = 0; i < 4; i++) {
     }
     document.getElementById("questionNumber").classList.add("d-none");
 
+    // Update hash-based URL for submit state
+    window.location.hash = `#${currentRoom}/submit/${currentQuestion.questionId}`;
+
     // Show waiting for result message
     const waitingMsg = document.getElementById("waitingForResultMsg");
     if (waitingMsg) {
@@ -446,6 +488,9 @@ socket.on("question_ended", (data) => {
   if (timerInterval) {
     clearInterval(timerInterval);
   }
+
+  // Update hash-based URL for result state
+  window.location.hash = `#${currentRoom}/result/${currentQuestion.questionId}`;
 
   // Hide waiting for result message
   const waitingMsg = document.getElementById("waitingForResultMsg");
@@ -502,6 +547,9 @@ socket.on("quiz_ended", (data) => {
   if (timerInterval) {
     clearInterval(timerInterval);
   }
+
+  // Update hash-based URL for final state
+  window.location.hash = `#${currentRoom}/final`;
 
   // Clear session info after quiz ends
   localStorage.removeItem("studentSession");
