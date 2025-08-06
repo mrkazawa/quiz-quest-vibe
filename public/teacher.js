@@ -561,27 +561,44 @@ function startTimer(seconds, originalTimeLimit = null) {
 
 // Question ended event
 socket.on("question_ended", (data) => {
-  const { correctAnswer, playerAnswers } = data;
+  const { correctAnswer, playerAnswers, questionId, question, options } = data;
 
   // Clear timer
   if (timerInterval) {
     clearInterval(timerInterval);
   }
 
+  // If we have question data from server, use it; otherwise reconstruct
+  if (question && options) {
+    // Server provided full question data (e.g., from refresh)
+    currentQuestion = {
+      questionId: questionId,
+      question: question,
+      options: options,
+    };
+  } else if (!currentQuestion || currentQuestion.questionId !== questionId) {
+    // Fallback: create minimal currentQuestion data
+    currentQuestion = {
+      questionId: questionId,
+      question: "Question data loading...", // Placeholder
+      options: ["Option A", "Option B", "Option C", "Option D"], // Placeholder
+    };
+  }
+
   // Update hash to result state
-  if (currentRoom && currentQuestion && currentQuestion.questionId) {
-    window.location.hash = `#${currentRoom}/result/${currentQuestion.questionId}`;
+  if (currentRoom && questionId) {
+    window.location.hash = `#${currentRoom}/result/${questionId}`;
   }
 
   // Update UI
   quizRunningScreen.classList.add("d-none");
   questionResultsScreen.classList.remove("d-none");
 
-  // Set results question and options
+  // Set results question text
   document.getElementById("resultsQuestionText").textContent =
     currentQuestion.question;
 
-  // Mark correct answer
+  // Mark correct answer and set options
   for (let i = 0; i < 4; i++) {
     const optionEl = document.getElementById(`resultsOption${i}`);
 
@@ -616,10 +633,10 @@ socket.on("question_ended", (data) => {
       : '<i class="bi bi-x-circle-fill text-danger"></i>';
 
     // Determine answer text
-    const answerText =
-      answer.answerId !== null
-        ? currentQuestion.options[answer.answerId]
-        : "No answer";
+    let answerText = "No answer";
+    if (answer.answerId !== null && currentQuestion.options[answer.answerId]) {
+      answerText = currentQuestion.options[answer.answerId];
+    }
 
     row.innerHTML = `
       <td>

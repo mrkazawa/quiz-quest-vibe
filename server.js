@@ -572,7 +572,7 @@ io.on("connection", (socket) => {
       })),
     });
 
-    // If the room is active, send the current question
+    // If the room is active, send the current question or question results
     if (rooms[roomId].isActive && rooms[roomId].currentQuestionIndex >= 0) {
       const currentQuestionId =
         rooms[roomId].questionOrder[rooms[roomId].currentQuestionIndex];
@@ -587,15 +587,46 @@ io.on("connection", (socket) => {
         remainingTime = Math.max(0, currentQuestionObj.timeLimit - elapsed);
       }
 
-      socket.emit("new_question", {
-        question: currentQuestionObj.question,
-        options: currentQuestionObj.options,
-        timeLimit: currentQuestionObj.timeLimit,
-        remainingTime: remainingTime,
-        questionId: currentQuestionObj.id,
-        currentQuestionIndex: rooms[roomId].currentQuestionIndex,
-        totalQuestions: rooms[roomId].questionOrder.length,
-      });
+      // Check if question has ended or time has expired
+      if (rooms[roomId].questionEndedState || remainingTime <= 1) {
+        // Question has ended, send question_ended event to teacher
+        const questionResults = {
+          questionId: currentQuestionObj.id,
+          question: currentQuestionObj.question, // Include full question text
+          options: currentQuestionObj.options, // Include all options
+          correctAnswer: currentQuestionObj.correctAnswer,
+          playerAnswers: Object.values(rooms[roomId].players).map((p) => {
+            const answer = p.answers.find(
+              (a) => a.questionId === currentQuestionObj.id
+            );
+            return {
+              playerId: p.socketId, // Use socketId for client identification
+              playerName: p.name,
+              studentId: p.studentId,
+              answerId: answer ? answer.answerId : null,
+              isCorrect: answer ? answer.isCorrect : false,
+              score: p.score,
+              streak: p.streak,
+            };
+          }),
+        };
+
+        console.log(
+          `Sending question_ended results to rejoining teacher for question ${currentQuestionObj.id}`
+        );
+        socket.emit("question_ended", questionResults);
+      } else {
+        // Question is still active, send normal question data
+        socket.emit("new_question", {
+          question: currentQuestionObj.question,
+          options: currentQuestionObj.options,
+          timeLimit: currentQuestionObj.timeLimit,
+          remainingTime: remainingTime,
+          questionId: currentQuestionObj.id,
+          currentQuestionIndex: rooms[roomId].currentQuestionIndex,
+          totalQuestions: rooms[roomId].questionOrder.length,
+        });
+      }
     }
 
     console.log(`Teacher ${socket.id} joined room ${roomId}`);
