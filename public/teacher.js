@@ -243,6 +243,9 @@ document.addEventListener("DOMContentLoaded", () => {
           console.log(`Rejoining room ${displayRoomId} during final screen`);
           socket.emit("join_teacher_room", displayRoomId);
           currentRoom = displayRoomId;
+        } else {
+          // Already connected, try to load quiz completion data from history
+          loadQuizCompletionData(displayRoomId);
         }
       }
     } else if (/^#history\/(\w+)$/.test(hash)) {
@@ -660,25 +663,33 @@ socket.on("question_ended", (data) => {
 nextQuestionBtn.addEventListener("click", () => {
   console.log("Next Question button clicked, currentRoom:", currentRoom);
   if (currentRoom) {
-    // If on last question, finalize quiz and go to final screen
+    // Get total questions from current question data or fallback
     const totalQuestions =
       currentQuestion && currentQuestion.totalQuestions
         ? currentQuestion.totalQuestions
         : quizQuestions
         ? quizQuestions.length
         : 0;
-    const currentNum =
+
+    // Get current question number - check both from currentQuestion data and currentQuestionIndex
+    let currentNum;
+    if (
       currentQuestion &&
       typeof currentQuestion.currentQuestionIndex === "number"
-        ? currentQuestion.currentQuestionIndex + 1
-        : currentQuestionIndex;
+    ) {
+      currentNum = currentQuestion.currentQuestionIndex + 1;
+    } else {
+      currentNum = currentQuestionIndex;
+    }
 
     console.log(`Current question: ${currentNum}, Total: ${totalQuestions}`);
 
-    if (currentNum === totalQuestions) {
+    // If on last question, finalize quiz and go to final screen
+    if (currentNum >= totalQuestions) {
       // Finalize quiz
       console.log("Finalizing quiz - sending next_question to end quiz");
       socket.emit("next_question", currentRoom);
+      // Navigate to final page immediately
       window.location.hash = `#${currentRoom}/final`;
     } else {
       console.log("Moving to next question - sending next_question");
@@ -939,6 +950,23 @@ socket.on("teacher_joined_room", (data) => {
 
   // Update start button state based on current player count
   updateStartButtonState(players ? players.length : 0);
+});
+
+// Handle teacher joining a completed room (from quiz history)
+socket.on("teacher_joined_completed_room", (data) => {
+  const { roomId, isCompleted, historyId } = data;
+  currentRoom = roomId;
+
+  console.log(`Joined completed room ${roomId}, loading data from history`);
+
+  // Show completion screen and load data from history
+  showScreen(quizCompletionScreen);
+  loadQuizCompletionData(historyId);
+
+  // Update hash to final state if not already there
+  if (!window.location.hash.includes("/final")) {
+    window.location.hash = `#${roomId}/final`;
+  }
 });
 
 // Listen for join errors
@@ -1215,6 +1243,75 @@ if (mainViewHistoryBtn) {
       }, 500);
     }
   });
+}
+
+// Function to load quiz completion data from history (for refresh on final page)
+function loadQuizCompletionData(roomId) {
+  console.log(`Attempting to load completion data for room ${roomId}`);
+
+  // Try to fetch quiz history for this room
+  fetch(`/api/quiz-history/${roomId}`)
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return response.json();
+    })
+    .then((quizData) => {
+      console.log("Loaded completion data from history:", quizData);
+
+      // Set the quiz info
+      document.getElementById("completionQuizName").textContent =
+        quizData.quizName;
+
+      // Format the date
+      const date = new Date(quizData.dateCompleted);
+      const formattedDate =
+        date.toLocaleDateString() + " " + date.toLocaleTimeString();
+      document.getElementById("completionDateTime").textContent = formattedDate;
+
+      document.getElementById("completionPlayerCount").textContent =
+        quizData.playerCount;
+
+      // Populate rankings table
+      const rankingsTable = document.getElementById("completionRankingsTable");
+      rankingsTable.innerHTML = "";
+
+      if (quizData.rankings && quizData.rankings.length > 0) {
+        quizData.rankings.forEach((player) => {
+          const row = document.createElement("tr");
+
+          row.innerHTML = `
+            <td>#${player.rank}</td>
+            <td>
+              ${player.playerName}
+              <small class="d-block text-muted">ID: ${
+                player.studentId || "N/A"
+              }</small>
+            </td>
+            <td>${player.score}</td>
+          `;
+
+          rankingsTable.appendChild(row);
+        });
+      } else {
+        rankingsTable.innerHTML =
+          '<tr><td colspan="3" class="text-center">No results available</td></tr>';
+      }
+    })
+    .catch((error) => {
+      console.error("Error loading completion data from history:", error);
+
+      // Show a message that data is being loaded or unavailable
+      document.getElementById("completionQuizName").textContent =
+        "Quiz Results";
+      document.getElementById("completionDateTime").textContent = "Loading...";
+      document.getElementById("completionPlayerCount").textContent = "0";
+
+      const rankingsTable = document.getElementById("completionRankingsTable");
+      rankingsTable.innerHTML =
+        '<tr><td colspan="3" class="text-center">Quiz results will appear here when available</td></tr>';
+    });
 }
 
 // Removed beforeunload and unload handlers for teacher waiting room refresh

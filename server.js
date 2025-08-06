@@ -535,6 +535,20 @@ io.on("connection", (socket) => {
   // Teacher joins an existing room
   socket.on("join_teacher_room", (roomId) => {
     if (!rooms[roomId]) {
+      // Room doesn't exist - check if it's in quiz history
+      if (quizHistory[roomId]) {
+        // Room is completed and in history
+        socket.emit("teacher_joined_completed_room", {
+          roomId,
+          isCompleted: true,
+          historyId: roomId,
+        });
+        console.log(
+          `Teacher ${socket.id} joined completed room ${roomId} from history`
+        );
+        return;
+      }
+
       socket.emit("join_error", "Room not found");
       return;
     }
