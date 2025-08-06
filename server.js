@@ -933,6 +933,51 @@ function endQuiz(roomId) {
       score: p.score,
     }));
 
+  // Create detailed results with question-by-question data
+  const detailedResults = Object.values(rooms[roomId].players).map((player) => {
+    // Process each answer to include answer text and running totals
+    let runningScore = 0;
+    let runningStreak = 0;
+
+    const processedAnswers = player.answers.map((answer) => {
+      const questionObj = rooms[roomId].questions[answer.questionId];
+      const answerText =
+        answer.answerId !== null
+          ? questionObj.options[answer.answerId]
+          : "No Answer";
+
+      // Update running totals based on this answer
+      if (answer.isCorrect) {
+        runningStreak++;
+        const timeBonus = 1 - answer.timeTaken / questionObj.timeLimit;
+        const streakMultiplier = Math.min(1 + runningStreak * 0.1, 1.5);
+        const pointsEarned = Math.floor(
+          questionObj.points * timeBonus * streakMultiplier
+        );
+        runningScore += pointsEarned;
+      } else {
+        runningStreak = 0;
+      }
+
+      return {
+        questionId: answer.questionId,
+        answerId: answer.answerId,
+        answerText: answerText,
+        isCorrect: answer.isCorrect,
+        timeTaken: answer.timeTaken,
+        streakAfter: runningStreak,
+        scoreAfter: runningScore,
+      };
+    });
+
+    return {
+      studentId: player.studentId,
+      playerName: player.name,
+      finalScore: player.score,
+      answers: processedAnswers,
+    };
+  });
+
   // Save to quiz history using roomId as the key and identifier
   const room = rooms[roomId];
   const quizSet = questionSets[room.quizId];
@@ -945,6 +990,7 @@ function endQuiz(roomId) {
     dateCompleted: new Date().toISOString(),
     playerCount: Object.keys(room.players).length,
     rankings: rankings,
+    detailedResults: detailedResults, // Add detailed question-by-question data
   };
 
   // Send quiz ended event with minimal info (no rankings for teacher/waiting room)

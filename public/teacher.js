@@ -853,69 +853,175 @@ document.addEventListener("DOMContentLoaded", () => {
     downloadCsvBtn.addEventListener("click", () => {
       const table = document.getElementById("completionRankingsTable");
       if (!table) return;
-      let csv = "Rank,Player,Student ID,Score\n";
-      // Collect all rows except the header
-      const dataRows = [];
-      for (const row of table.rows) {
-        // Skip header row if present (th)
-        if (row.querySelector("th")) continue;
-        // Rank: remove #
-        const rankCell =
-          row.cells[0]?.textContent?.replace("#", "").trim() || "";
-        // Player: extract name and student ID from cell
-        let playerName = "";
-        let studentId = "";
-        if (row.cells[1]) {
-          // The cell contains player name and a <small> with ID
-          const cell = row.cells[1];
-          const nameNode = cell.childNodes[0];
-          playerName = nameNode ? nameNode.textContent.trim() : "";
-          const small = cell.querySelector("small");
-          if (small) {
-            const match = small.textContent.match(/ID: (.+)/);
-            studentId = match ? match[1].trim() : "";
+
+      // Get room ID for filename
+      let roomId = "unknown";
+      if (typeof currentRoom === "string" && currentRoom.length > 0) {
+        roomId = currentRoom;
+      }
+
+      // Fetch detailed quiz data from history to get question-by-question results
+      fetch(`/api/quiz-history/${roomId}`)
+        .then((response) => response.json())
+        .then((quizData) => {
+          // Create detailed CSV with question-by-question data
+          let csv = "Rank,Player,Student ID,Final Score";
+
+          // Get all question IDs and create headers for each question
+          const allQuestions = new Set();
+          if (quizData.detailedResults) {
+            quizData.detailedResults.forEach((player) => {
+              player.answers.forEach((answer) => {
+                allQuestions.add(answer.questionId);
+              });
+            });
           }
-        }
-        // Score
-        const score = row.cells[2]?.textContent?.trim() || "";
-        dataRows.push({ rankCell, playerName, studentId, score });
-      }
-      // Sort by studentId (alphanumeric)
-      dataRows.sort((a, b) => a.studentId.localeCompare(b.studentId));
-      // Write sorted rows to CSV
-      for (const row of dataRows) {
-        csv += `"${row.rankCell}","${row.playerName}","${row.studentId}","${row.score}"\n`;
-      }
-      // Download as CSV
-      const blob = new Blob([csv], { type: "text/csv" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "quiz_rankings.csv";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+
+          const sortedQuestions = Array.from(allQuestions).sort(
+            (a, b) => parseInt(a) - parseInt(b)
+          );
+
+          // Add question headers
+          sortedQuestions.forEach((questionId) => {
+            csv += `,Q${questionId}_Answer_Number,Q${questionId}_Answer_Text,Q${questionId}_Result,Q${questionId}_Streak,Q${questionId}_Score`;
+          });
+          csv += "\n";
+
+          // Get ranking data and sort by student ID
+          const dataRows = [];
+          for (const row of table.rows) {
+            if (row.querySelector("th")) continue; // Skip header
+
+            const rankCell =
+              row.cells[0]?.textContent?.replace("#", "").trim() || "";
+            let playerName = "";
+            let studentId = "";
+
+            if (row.cells[1]) {
+              const cell = row.cells[1];
+              const nameNode = cell.childNodes[0];
+              playerName = nameNode ? nameNode.textContent.trim() : "";
+              const small = cell.querySelector("small");
+              if (small) {
+                const match = small.textContent.match(/ID: (.+)/);
+                studentId = match ? match[1].trim() : "";
+              }
+            }
+
+            const finalScore = row.cells[2]?.textContent?.trim() || "";
+
+            // Find detailed data for this student
+            let playerDetailedData = null;
+            if (quizData.detailedResults) {
+              playerDetailedData = quizData.detailedResults.find(
+                (p) => p.studentId === studentId
+              );
+            }
+
+            dataRows.push({
+              rankCell,
+              playerName,
+              studentId,
+              finalScore,
+              detailedData: playerDetailedData,
+            });
+          }
+
+          // Sort by student ID
+          dataRows.sort((a, b) => a.studentId.localeCompare(b.studentId));
+
+          // Write data rows
+          dataRows.forEach((row) => {
+            csv += `"${row.rankCell}","${row.playerName}","${row.studentId}","${row.finalScore}"`;
+
+            // Add question-by-question data
+            sortedQuestions.forEach((questionId) => {
+              let answerNumber = "";
+              let answerText = "";
+              let result = "";
+              let streak = "";
+              let score = "";
+
+              if (row.detailedData) {
+                const answer = row.detailedData.answers.find(
+                  (a) => a.questionId === questionId
+                );
+                if (answer) {
+                  answerNumber =
+                    answer.answerId !== null
+                      ? answer.answerId + 1
+                      : "No Answer";
+                  answerText = answer.answerText || "No Answer";
+                  result = answer.isCorrect ? "true" : "false";
+                  streak = answer.streakAfter || 0;
+                  score = answer.scoreAfter || 0;
+                }
+              }
+
+              csv += `,"${answerNumber}","${answerText}","${result}","${streak}","${score}"`;
+            });
+
+            csv += "\n";
+          });
+
+          // Download the CSV
+          const blob = new Blob([csv], { type: "text/csv" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `quiz-result-${roomId}.csv`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        })
+        .catch((error) => {
+          console.error("Error fetching detailed quiz data:", error);
+
+          // Fallback to simple CSV if detailed data not available
+          let csv = "Rank,Player,Student ID,Score\n";
+          const dataRows = [];
+
+          for (const row of table.rows) {
+            if (row.querySelector("th")) continue;
+
+            const rankCell =
+              row.cells[0]?.textContent?.replace("#", "").trim() || "";
+            let playerName = "";
+            let studentId = "";
+
+            if (row.cells[1]) {
+              const cell = row.cells[1];
+              const nameNode = cell.childNodes[0];
+              playerName = nameNode ? nameNode.textContent.trim() : "";
+              const small = cell.querySelector("small");
+              if (small) {
+                const match = small.textContent.match(/ID: (.+)/);
+                studentId = match ? match[1].trim() : "";
+              }
+            }
+
+            const score = row.cells[2]?.textContent?.trim() || "";
+            dataRows.push({ rankCell, playerName, studentId, score });
+          }
+
+          dataRows.sort((a, b) => a.studentId.localeCompare(b.studentId));
+
+          dataRows.forEach((row) => {
+            csv += `"${row.rankCell}","${row.playerName}","${row.studentId}","${row.score}"\n`;
+          });
+
+          const blob = new Blob([csv], { type: "text/csv" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `quiz-result-${roomId}.csv`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        });
     });
-    // Get room ID for filename
-    let roomId = "unknown";
-    const roomIdElem = document.getElementById("historyRoomId");
-    if (roomIdElem && roomIdElem.textContent) {
-      roomId = roomIdElem.textContent.trim();
-    } else if (typeof currentRoom === "string" && currentRoom.length > 0) {
-      roomId = currentRoom;
-    }
-    const filename = `quiz-result-${roomId}.csv`;
-    // ...existing code for creating blob and triggering download...
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
   }
 });
 
