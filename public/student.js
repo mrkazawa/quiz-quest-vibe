@@ -82,6 +82,16 @@ function renderScreenFromHash() {
         // Show waiting room UI
         showScreen(waitingRoomScreen);
         waitingRoomId.textContent = roomId;
+
+        // If not already connected to this room, rejoin
+        if (currentRoom !== roomId) {
+          console.log(`Rejoining waiting room ${roomId} after refresh`);
+          socket.emit("join_room", {
+            roomId: session.roomId,
+            playerName: session.playerName,
+            studentId: session.studentId,
+          });
+        }
       } else {
         // If info missing, go back to dashboard
         window.location.hash = "#dashboard";
