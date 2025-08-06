@@ -1,3 +1,10 @@
+// Generate or retrieve teacher identifier for session persistence
+let teacherId = localStorage.getItem("teacherId");
+if (!teacherId) {
+  teacherId = "teacher_" + Math.random().toString(36).substr(2, 9);
+  localStorage.setItem("teacherId", teacherId);
+}
+
 // Connect to socket.io server
 const socket = io();
 
@@ -202,7 +209,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (match) {
         const displayRoomId = match[1];
         // Try to rejoin the room
-        socket.emit("join_teacher_room", displayRoomId);
+        socket.emit("join_teacher_room", { roomId: displayRoomId, teacherId });
         // Set currentRoom immediately to prevent duplicate joins
         currentRoom = displayRoomId;
       }
@@ -215,7 +222,10 @@ document.addEventListener("DOMContentLoaded", () => {
         // If not already connected to this room, rejoin
         if (currentRoom !== displayRoomId) {
           console.log(`Rejoining room ${displayRoomId} during question`);
-          socket.emit("join_teacher_room", displayRoomId);
+          socket.emit("join_teacher_room", {
+            roomId: displayRoomId,
+            teacherId,
+          });
           currentRoom = displayRoomId;
         }
       }
@@ -228,7 +238,10 @@ document.addEventListener("DOMContentLoaded", () => {
         // If not already connected to this room, rejoin
         if (currentRoom !== displayRoomId) {
           console.log(`Rejoining room ${displayRoomId} during result`);
-          socket.emit("join_teacher_room", displayRoomId);
+          socket.emit("join_teacher_room", {
+            roomId: displayRoomId,
+            teacherId,
+          });
           currentRoom = displayRoomId;
         }
       }
@@ -241,7 +254,10 @@ document.addEventListener("DOMContentLoaded", () => {
         // If not already connected to this room, rejoin
         if (currentRoom !== displayRoomId) {
           console.log(`Rejoining room ${displayRoomId} during final screen`);
-          socket.emit("join_teacher_room", displayRoomId);
+          socket.emit("join_teacher_room", {
+            roomId: displayRoomId,
+            teacherId,
+          });
           currentRoom = displayRoomId;
         } else {
           // Already connected, try to load quiz completion data from history
@@ -281,7 +297,7 @@ if (showQuizHistoryBtn) {
 
 // Create a new room
 function createRoom(questionId) {
-  socket.emit("create_room", questionId);
+  socket.emit("create_room", { quizId: questionId, teacherId });
 }
 
 // Room created event
@@ -564,7 +580,15 @@ function startTimer(seconds, originalTimeLimit = null) {
 
 // Question ended event
 socket.on("question_ended", (data) => {
-  const { correctAnswer, playerAnswers, questionId, question, options } = data;
+  const {
+    correctAnswer,
+    playerAnswers,
+    questionId,
+    question,
+    options,
+    currentQuestionIndex,
+    totalQuestions,
+  } = data;
 
   // Clear timer
   if (timerInterval) {
@@ -578,6 +602,8 @@ socket.on("question_ended", (data) => {
       questionId: questionId,
       question: question,
       options: options,
+      currentQuestionIndex: currentQuestionIndex, // Include index data
+      totalQuestions: totalQuestions, // Include total count
     };
   } else if (!currentQuestion || currentQuestion.questionId !== questionId) {
     // Fallback: create minimal currentQuestion data
@@ -585,6 +611,8 @@ socket.on("question_ended", (data) => {
       questionId: questionId,
       question: "Question data loading...", // Placeholder
       options: ["Option A", "Option B", "Option C", "Option D"], // Placeholder
+      currentQuestionIndex: currentQuestionIndex, // Include if available
+      totalQuestions: totalQuestions, // Include if available
     };
   }
 
@@ -600,6 +628,19 @@ socket.on("question_ended", (data) => {
   // Set results question text
   document.getElementById("resultsQuestionText").textContent =
     currentQuestion.question;
+
+  // Update the Next Question button text based on question progress
+  if (
+    currentQuestion.currentQuestionIndex !== undefined &&
+    currentQuestion.totalQuestions !== undefined
+  ) {
+    const currentNum = currentQuestion.currentQuestionIndex + 1;
+    if (currentNum >= currentQuestion.totalQuestions) {
+      nextQuestionBtn.textContent = "Finalize Quiz";
+    } else {
+      nextQuestionBtn.textContent = "Next Question";
+    }
+  }
 
   // Mark correct answer and set options
   for (let i = 0; i < 4; i++) {

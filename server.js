@@ -18,17 +18,22 @@ const io = socketIO(server);
 app.use(express.json());
 
 // Set up session middleware
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET || "quiz-app-secret-key",
-    resave: false,
-    saveUninitialized: true,
-    cookie: {
-      secure: process.env.NODE_ENV === "production", // Use secure cookies in production
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    },
-  })
-);
+const sessionMiddleware = session({
+  secret: process.env.SESSION_SECRET || "quiz-app-secret-key",
+  resave: false,
+  saveUninitialized: true,
+  cookie: {
+    secure: process.env.NODE_ENV === "production", // Use secure cookies in production
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+  },
+});
+
+app.use(sessionMiddleware);
+
+// Share session middleware with Socket.IO
+io.use((socket, next) => {
+  sessionMiddleware(socket.request, socket.request.res || {}, next);
+});
 
 // Store quiz history
 const quizHistory = {};
@@ -114,7 +119,9 @@ io.on("connection", (socket) => {
   console.log("A user connected:", socket.id);
 
   // Teacher creates a quiz room
-  socket.on("create_room", (quizId) => {
+  socket.on("create_room", (data) => {
+    const { quizId, teacherId } = data;
+
     // Find the question set with the given ID
     const questionSet = questionSets[quizId];
 
@@ -147,6 +154,7 @@ io.on("connection", (socket) => {
       currentQuestionIndex: 0,
       results: {},
       hostId: socket.id,
+      teacherSessionId: teacherId || socket.id, // Use client-provided teacherId
       createdAt: Date.now(),
       questionEndedState: false, // Track if current question has ended
     };
@@ -533,7 +541,9 @@ io.on("connection", (socket) => {
   });
 
   // Teacher joins an existing room
-  socket.on("join_teacher_room", (roomId) => {
+  socket.on("join_teacher_room", (data) => {
+    const { roomId, teacherId } = data;
+
     if (!rooms[roomId]) {
       // Room doesn't exist - check if it's in quiz history
       if (quizHistory[roomId]) {
@@ -553,17 +563,33 @@ io.on("connection", (socket) => {
       return;
     }
 
+    // Check if this is the same teacher based on teacher ID
+    const isSameTeacher = rooms[roomId].teacherSessionId === teacherId;
+
     // Allow rejoining if the room exists and either:
     // 1. There's no current host (hostId is null - teacher disconnected)
     // 2. The current host is this socket (already connected)
-    if (rooms[roomId].hostId !== null && rooms[roomId].hostId !== socket.id) {
+    // 3. This is the same teacher session (after refresh)
+    if (
+      rooms[roomId].hostId !== null &&
+      rooms[roomId].hostId !== socket.id &&
+      !isSameTeacher
+    ) {
       socket.emit("join_error", "Another teacher is already hosting this room");
       return;
     }
 
     // Always update hostId to this teacher's socket
     rooms[roomId].hostId = socket.id;
+    // Update teacher session ID (in case it changed)
+    rooms[roomId].teacherSessionId = teacherId;
     socket.join(roomId);
+
+    console.log(
+      `Teacher ${socket.id} (teacherId: ${teacherId}) ${
+        isSameTeacher ? "rejoined" : "joined"
+      } room ${roomId}`
+    );
 
     // If the room is NOT active (waiting room), clear any previous timer and reset quiz state
     if (!rooms[roomId].isActive) {
@@ -609,6 +635,8 @@ io.on("connection", (socket) => {
           question: currentQuestionObj.question, // Include full question text
           options: currentQuestionObj.options, // Include all options
           correctAnswer: currentQuestionObj.correctAnswer,
+          currentQuestionIndex: rooms[roomId].currentQuestionIndex, // Add current question index
+          totalQuestions: rooms[roomId].questionOrder.length, // Add total questions count
           playerAnswers: Object.values(rooms[roomId].players).map((p) => {
             const answer = p.answers.find(
               (a) => a.questionId === currentQuestionObj.id
@@ -772,6 +800,8 @@ function endQuestion(roomId) {
   const questionResults = {
     questionId: currentQuestionObj.id,
     correctAnswer: currentQuestionObj.correctAnswer,
+    currentQuestionIndex: rooms[roomId].currentQuestionIndex, // Add current question index
+    totalQuestions: rooms[roomId].questionOrder.length, // Add total questions count
     playerAnswers: Object.values(rooms[roomId].players).map((p) => {
       const answer = p.answers.find(
         (a) => a.questionId === currentQuestionObj.id
