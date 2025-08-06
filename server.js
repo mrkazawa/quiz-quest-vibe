@@ -260,6 +260,7 @@ io.on("connection", (socket) => {
               answerId: answer ? answer.answerId : null,
               isCorrect: answer ? answer.isCorrect : false,
               score: p.score,
+              streak: p.streak, // Add streak information for restoration
             };
           }),
         };
@@ -689,6 +690,7 @@ function endQuestion(roomId) {
         answerId: answer ? answer.answerId : null,
         isCorrect: answer ? answer.isCorrect : false,
         score: p.score,
+        streak: p.streak, // Add streak information
       };
     }),
   };

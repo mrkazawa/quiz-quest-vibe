@@ -784,7 +784,16 @@ socket.on("question_ended", (data) => {
   if (lastAnswer) {
     // Update the current score and streak from server data
     currentScore = lastAnswer.score;
+    currentStreak = lastAnswer.streak || 0; // Restore streak from server data
     resultScore.textContent = currentScore;
+
+    // Update streak display based on restored streak value
+    if (currentStreak > 1) {
+      resultStreakContainer.classList.remove("d-none");
+      resultStreakValue.textContent = currentStreak;
+    } else {
+      resultStreakContainer.classList.add("d-none");
+    }
 
     // Determine if this student actually submitted an answer (not null)
     const studentDidAnswer = lastAnswer.answerId !== null;
@@ -839,4 +848,15 @@ socket.on("quiz_ended", (data) => {
   // Show the student's final score
   const finalScoreValue = document.getElementById("finalScoreValue");
   finalScoreValue.textContent = currentScore;
+});
+
+// Add event listener for "Join Another Quiz" button
+document.addEventListener("DOMContentLoaded", () => {
+  const joinAnotherQuizBtn = document.getElementById("joinAnotherQuizBtn");
+  if (joinAnotherQuizBtn) {
+    joinAnotherQuizBtn.addEventListener("click", () => {
+      // Navigate to student dashboard with hash
+      window.location.href = "/student#dashboard";
+    });
+  }
 });
