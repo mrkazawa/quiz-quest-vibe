@@ -201,7 +201,10 @@ document.addEventListener("DOMContentLoaded", () => {
       const match = hash.match(waitingRoomPattern);
       if (match) {
         const displayRoomId = match[1];
+        // Try to rejoin the room
         socket.emit("join_teacher_room", displayRoomId);
+        // Set currentRoom immediately to prevent duplicate joins
+        currentRoom = displayRoomId;
       }
     } else if (questionPattern.test(hash)) {
       showScreen(quizRunningScreen);

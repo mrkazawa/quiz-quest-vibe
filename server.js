@@ -539,6 +539,14 @@ io.on("connection", (socket) => {
       return;
     }
 
+    // Allow rejoining if the room exists and either:
+    // 1. There's no current host (hostId is null - teacher disconnected)
+    // 2. The current host is this socket (already connected)
+    if (rooms[roomId].hostId !== null && rooms[roomId].hostId !== socket.id) {
+      socket.emit("join_error", "Another teacher is already hosting this room");
+      return;
+    }
+
     // Always update hostId to this teacher's socket
     rooms[roomId].hostId = socket.id;
     socket.join(roomId);
@@ -624,19 +632,47 @@ io.on("connection", (socket) => {
         });
       }
 
-      // If this was the host, end the quiz
+      // If this was the host, handle room cleanup
       if (room.hostId === socket.id) {
-        room.isActive = false;
-        io.to(roomId).emit("quiz_ended", { message: "Host disconnected" });
+        console.log(`Teacher disconnected from room ${roomId}`);
 
-        // Clear any active timers
-        if (room.timer) {
-          clearTimeout(room.timer);
+        // If quiz is active, end it
+        if (room.isActive) {
+          room.isActive = false;
+          io.to(roomId).emit("quiz_ended", { message: "Host disconnected" });
+
+          // Clear any active timers
+          if (room.timer) {
+            clearTimeout(room.timer);
+          }
+
+          // Delete the room when quiz was active
+          delete rooms[roomId];
+          console.log(
+            `Room ${roomId} was deleted because quiz was active when teacher left`
+          );
+        } else {
+          // For waiting rooms, keep the room but mark teacher as disconnected
+          // This allows teacher to rejoin after refresh
+          room.hostId = null;
+          console.log(
+            `Room ${roomId} kept active for teacher rejoin (waiting room)`
+          );
+
+          // Set a timeout to delete the room if teacher doesn't rejoin within 5 minutes
+          setTimeout(() => {
+            if (rooms[roomId] && rooms[roomId].hostId === null) {
+              // Notify all players that the room is being closed
+              io.to(roomId).emit("quiz_ended", {
+                message: "Room closed due to teacher inactivity",
+              });
+              delete rooms[roomId];
+              console.log(
+                `Room ${roomId} was deleted due to teacher inactivity`
+              );
+            }
+          }, 5 * 60 * 1000); // 5 minutes
         }
-
-        // Delete the room when host disconnects
-        delete rooms[roomId];
-        console.log(`Room ${roomId} was deleted because the teacher left`);
       }
     }
 
