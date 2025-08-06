@@ -208,12 +208,43 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     } else if (questionPattern.test(hash)) {
       showScreen(quizRunningScreen);
-      // Optionally update question UI here
+      // Extract roomId from hash and try to rejoin if needed
+      const match = hash.match(questionPattern);
+      if (match) {
+        const displayRoomId = match[1];
+        // If not already connected to this room, rejoin
+        if (currentRoom !== displayRoomId) {
+          console.log(`Rejoining room ${displayRoomId} during question`);
+          socket.emit("join_teacher_room", displayRoomId);
+          currentRoom = displayRoomId;
+        }
+      }
     } else if (resultPattern.test(hash)) {
       showScreen(questionResultsScreen);
-      // Optionally update result UI here
+      // Extract roomId from hash and try to rejoin if needed
+      const match = hash.match(resultPattern);
+      if (match) {
+        const displayRoomId = match[1];
+        // If not already connected to this room, rejoin
+        if (currentRoom !== displayRoomId) {
+          console.log(`Rejoining room ${displayRoomId} during result`);
+          socket.emit("join_teacher_room", displayRoomId);
+          currentRoom = displayRoomId;
+        }
+      }
     } else if (finalPattern.test(hash)) {
       showScreen(quizCompletionScreen);
+      // Extract roomId from hash and try to rejoin if needed
+      const match = hash.match(finalPattern);
+      if (match) {
+        const displayRoomId = match[1];
+        // If not already connected to this room, rejoin
+        if (currentRoom !== displayRoomId) {
+          console.log(`Rejoining room ${displayRoomId} during final screen`);
+          socket.emit("join_teacher_room", displayRoomId);
+          currentRoom = displayRoomId;
+        }
+      }
     } else if (/^#history\/(\w+)$/.test(hash)) {
       const match = hash.match(/^#history\/(\w+)$/);
       if (match) {
@@ -440,7 +471,7 @@ socket.on("quiz_started", () => {
 socket.on("new_question", (data) => {
   console.log("Teacher received new_question event:", data);
 
-  const { question, options, timeLimit, questionId } = data;
+  const { question, options, timeLimit, questionId, remainingTime } = data;
   currentQuestion = data;
 
   // Update hash to question state
@@ -476,7 +507,13 @@ socket.on("new_question", (data) => {
     nextQuestionBtn.textContent = "Next Question";
   }
   document.getElementById("questionText").textContent = question;
-  document.getElementById("timerDisplay").textContent = `${timeLimit}s`;
+
+  // Use remaining time if available, otherwise use full time limit
+  const timerSeconds =
+    typeof remainingTime === "number" ? remainingTime : timeLimit;
+  document.getElementById("timerDisplay").textContent = `${Math.ceil(
+    timerSeconds
+  )}s`;
 
   // Set options
   for (let i = 0; i < 4; i++) {
@@ -485,30 +522,35 @@ socket.on("new_question", (data) => {
     optionEl.className = `option-btn option-${i} btn w-100`;
   }
 
-  // Start timer
-  startTimer(timeLimit);
+  // Start timer with remaining time and original time limit for proper percentage calculation
+  startTimer(timerSeconds, timeLimit);
 });
 
-// Start timer function
-function startTimer(seconds) {
+// Start timer function - updated to handle remaining time like students
+function startTimer(seconds, originalTimeLimit = null) {
   let timeLeft = seconds;
   const timerBar = document.getElementById("timerBar");
   const timerDisplay = document.getElementById("timerDisplay");
+
+  // Use original time limit for percentage calculation, fallback to seconds if not provided
+  const maxTime = originalTimeLimit || seconds;
 
   // Clear any existing timer
   if (timerInterval) {
     clearInterval(timerInterval);
   }
 
-  // Reset timer bar
-  timerBar.style.width = "100%";
+  // Set initial timer bar width based on remaining time vs original time limit
+  const initialPercentage = (timeLeft / maxTime) * 100;
+  timerBar.style.width = `${initialPercentage}%`;
 
   // Update timer every 100ms for smooth animation
   timerInterval = setInterval(() => {
     timeLeft -= 0.1;
 
-    const percentage = (timeLeft / seconds) * 100;
-    timerBar.style.width = `${percentage}%`;
+    // Calculate percentage based on original time limit, not remaining time
+    const percentage = (timeLeft / maxTime) * 100;
+    timerBar.style.width = `${Math.max(0, percentage)}%`;
     timerDisplay.textContent = `${Math.ceil(timeLeft)}s`;
 
     if (timeLeft <= 0) {
@@ -820,17 +862,24 @@ socket.on("teacher_joined_room", (data) => {
   const { roomId, isActive, players } = data;
   currentRoom = roomId;
 
-  // Always hide dashboard and show waiting room
-  quizSelectionScreen.classList.add("d-none");
-  waitingRoomScreen.classList.remove("d-none");
-
-  // Set room link and ID
+  // Set room link and ID for waiting room display
   const displayRoomId = roomId;
   const fullUrl = `${window.location.origin}/student#dashboard?room=${displayRoomId}`;
   if (roomLink) roomLink.value = fullUrl;
   if (roomIdDisplay) roomIdDisplay.textContent = displayRoomId;
 
-  // Restore QR code after refresh
+  // If quiz is active, don't show waiting room - let new_question event handle UI
+  if (isActive) {
+    console.log("Joined an active quiz, waiting for question data...");
+    // The server will emit the current question separately with proper state
+    return;
+  }
+
+  // Quiz not active - show waiting room
+  quizSelectionScreen.classList.add("d-none");
+  waitingRoomScreen.classList.remove("d-none");
+
+  // Restore QR code for waiting room
   setTimeout(() => {
     const qrContainer = document.getElementById("qrCodeContainer");
     if (qrContainer) {
@@ -873,23 +922,24 @@ socket.on("teacher_joined_room", (data) => {
 
   // Update start button state based on current player count
   updateStartButtonState(players ? players.length : 0);
-
-  // If quiz is active, show quiz running screen
-  if (isActive) {
-    waitingRoomScreen.classList.add("d-none");
-    quizRunningScreen.classList.remove("d-none");
-    if (typeof updateHeaderTitle === "function") {
-      updateHeaderTitle("Quiz Results");
-    }
-    console.log("Joined an active quiz, waiting for question data...");
-    // The server will emit the current question separately
-  }
 });
 
 // Listen for join errors
 socket.on("join_error", (message) => {
   console.error("Join error:", message);
-  alert(`Error joining room: ${message}`);
+
+  // If we get a "Room not found" error while trying to rejoin during refresh
+  if (message === "Room not found") {
+    console.log("Room not found during refresh, redirecting to dashboard");
+    // Reset currentRoom and redirect to dashboard
+    currentRoom = null;
+    window.location.hash = "#dashboard";
+    // Show dashboard screen immediately to prevent blank screen
+    showScreen(quizSelectionScreen);
+    loadAvailableQuizzes();
+  } else {
+    alert(`Error joining room: ${message}`);
+  }
 });
 
 // const logoHome = document.getElementById('logoHome');

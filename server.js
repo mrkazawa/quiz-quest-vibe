@@ -636,23 +636,8 @@ io.on("connection", (socket) => {
       if (room.hostId === socket.id) {
         console.log(`Teacher disconnected from room ${roomId}`);
 
-        // If quiz is active, end it
-        if (room.isActive) {
-          room.isActive = false;
-          io.to(roomId).emit("quiz_ended", { message: "Host disconnected" });
-
-          // Clear any active timers
-          if (room.timer) {
-            clearTimeout(room.timer);
-          }
-
-          // Delete the room when quiz was active
-          delete rooms[roomId];
-          console.log(
-            `Room ${roomId} was deleted because quiz was active when teacher left`
-          );
-        } else {
-          // For waiting rooms, keep the room but mark teacher as disconnected
+        // For waiting rooms, keep the room but mark teacher as disconnected
+        if (!room.isActive) {
           // This allows teacher to rejoin after refresh
           room.hostId = null;
           console.log(
@@ -672,6 +657,33 @@ io.on("connection", (socket) => {
               );
             }
           }, 5 * 60 * 1000); // 5 minutes
+        } else {
+          // For active quizzes, also keep room temporarily for teacher rejoin
+          // but with shorter timeout (30 seconds for refresh scenarios)
+          room.hostId = null;
+          console.log(
+            `Room ${roomId} kept active for teacher rejoin (active quiz)`
+          );
+
+          // Set a shorter timeout for active quizzes
+          setTimeout(() => {
+            if (rooms[roomId] && rooms[roomId].hostId === null) {
+              room.isActive = false;
+              io.to(roomId).emit("quiz_ended", {
+                message: "Host disconnected",
+              });
+
+              // Clear any active timers
+              if (room.timer) {
+                clearTimeout(room.timer);
+              }
+
+              delete rooms[roomId];
+              console.log(
+                `Room ${roomId} was deleted because teacher didn't rejoin active quiz`
+              );
+            }
+          }, 30 * 1000); // 30 seconds for active quiz
         }
       }
     }
