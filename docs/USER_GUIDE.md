@@ -45,7 +45,7 @@ After logging in, you'll see the main dashboard with:
    - When ready, click the green "Start Quiz" button
    - You can go back to dashboard anytime using the "Back" button
 
-### During the Quiz
+### Teacher Quiz Management
 
 #### Question Management
 
@@ -116,7 +116,7 @@ After logging in, you'll see the main dashboard with:
 
 ### Joining a Quiz
 
-#### Getting Started
+#### Student Getting Started
 
 1. **Access the App**
 
@@ -150,7 +150,7 @@ After logging in, you'll see the main dashboard with:
    - Watch for the "Quiz is starting..." notification
    - Stay on the page - don't refresh or navigate away
 
-### During the Quiz
+### Student Quiz Participation
 
 #### Answering Questions
 
@@ -187,7 +187,7 @@ After logging in, you'll see the main dashboard with:
    - Real-time score updates during the quiz
    - Streak counters for competitive element
 
-### Quiz Completion
+### Student Quiz Completion
 
 #### Final Results
 
@@ -314,9 +314,9 @@ Consecutive correct answers build a streak multiplier that significantly boosts 
 - Current streak: 3 (1.1x multiplier)
 - **Final score**: 980 × 1.1 = 1,078 points
 
-### Leaderboard Rankings
+### Quiz Leaderboard Rankings
 
-#### During the Quiz
+#### Live Quiz Updates
 
 - **Real-time updates**: Scores update immediately after each question
 - **Live rankings**: See your position relative to other students

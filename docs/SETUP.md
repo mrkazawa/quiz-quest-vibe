@@ -118,6 +118,7 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=development
+      - TEACHER_PASSWORD=admin     # change your password here
     volumes:
       - ./questions:/app/questions
     restart: unless-stopped
