@@ -143,7 +143,3 @@ For detailed usage instructions, deployment guides, and API documentation, see:
 
 - **[SETUP.md](docs/SETUP.md)** - Setup and installation guide
 - **[USER_GUIDE.md](docs/USER_GUIDE.md)** - Complete user guide for teachers and students
-
-## License
-
-ISC
