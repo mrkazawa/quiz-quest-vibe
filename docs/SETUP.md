@@ -15,6 +15,10 @@ This app uses Serveo to expose your local server to the internet. **Your compute
 
 This app runs from the pre-built Docker image: `yoktian/quiz-quest-vibe`. You don't need to build anything - just pull and run!
 
+```shell
+docker pull yoktian/quiz-quest-vibe
+```
+
 ## 4. Creating Your Questions
 
 ### 4.1 Setting Up the Questions Folder
@@ -76,7 +80,7 @@ Use this template as a starting point:
 You can use ChatGPT or other AI models to generate questions. Here's a sample prompt:
 
 > **ChatGPT Prompt:**
-> "I need to create a quiz in JSON format. Please generate a `questions.json` file based on [YOUR TOPIC/MATERIALS]. Follow this exact structure:
+> "I need to create a quiz in JSON format. Please generate a json format text based on [YOUR TOPIC/MATERIALS]. Follow this exact structure:
 >
 > ```json
 > {
@@ -104,6 +108,8 @@ You can use ChatGPT or other AI models to generate questions. Here's a sample pr
 > - Include 10-15 questions total"
 
 Copy and paste this prompt along with your teaching materials or topic to generate your quiz.
+
+You can customize the timeLimit, points, and number of question.
 
 ## 5. Setting Up Docker Compose
 
