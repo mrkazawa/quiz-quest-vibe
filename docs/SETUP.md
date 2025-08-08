@@ -1,4 +1,4 @@
-# Quiz Quest Vibe - Step-by-Step Usage Tutorial
+# Quiz Quest - Step-by-Step Setup Tutorial
 
 ## 1. Prerequisites
 
@@ -124,7 +124,7 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=development
-      - TEACHER_PASSWORD=admin     # change your password here
+      - TEACHER_PASSWORD=admin # change your password here
     volumes:
       - ./questions:/app/questions
     restart: unless-stopped
@@ -186,4 +186,4 @@ docker system prune
 
 ---
 
-Have fun teaching with Quiz Quest Vibe!
+Have fun teaching with Quiz Quest!

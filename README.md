@@ -141,7 +141,8 @@ NODE_ENV=production                     # Environment mode
 
 For detailed usage instructions, deployment guides, and API documentation, see:
 
-- **[USAGE.md](docs/USAGE.md)** - Complete user guide and advanced features
+- **[SETUP.md](docs/SETUP.md)** - Setup and installation guide
+- **[USER_GUIDE.md](docs/USER_GUIDE.md)** - Complete user guide for teachers and students
 
 ## License
 

@@ -1,4 +1,4 @@
-# Quiz Quest Vibe - User Guide
+# Quiz Quest - User Guide
 
 ## For Teachers
 
@@ -6,7 +6,7 @@
 
 1. **Access the App**
 
-   - Open your web browser and navigate to the Quiz Quest Vibe URL
+   - Open your web browser and navigate to the Quiz Quest URL
    - You'll see the main landing page with "Teacher Login" and "Join as Student" options
 
 2. **Teacher Login**
@@ -120,7 +120,7 @@ After logging in, you'll see the main dashboard with:
 
 1. **Access the App**
 
-   - Open the Quiz Quest Vibe URL in your web browser
+   - Open the Quiz Quest URL in your web browser
    - Click "Join as Student" on the main page
 
 2. **Enter Your Information**
@@ -253,7 +253,7 @@ After logging in, you'll see the main dashboard with:
 
 ### How Points Are Calculated
 
-The Quiz Quest Vibe scoring system is designed to reward both accuracy and speed, encouraging students to answer correctly while maintaining a reasonable pace.
+The Quiz Quest scoring system is designed to reward both accuracy and speed, encouraging students to answer correctly while maintaining a reasonable pace.
 
 #### Base Points
 
@@ -449,4 +449,4 @@ socket.on("answer", (data) => {
 
 ---
 
-_Have fun learning with Quiz Quest Vibe!_
+_Have fun learning with Quiz Quest!_
