@@ -63,7 +63,7 @@ A real-time multiple choice quiz application similar to Kahoot. This application
 
 ## Project Structure
 
-```
+```shell
 quiz-quest-vibe/
 ├── server.js                 # Main Express server and Socket.IO logic
 ├── package.json              # Node.js dependencies and scripts
@@ -141,7 +141,7 @@ NODE_ENV=production                     # Environment mode
 
 For detailed usage instructions, deployment guides, and API documentation, see:
 
-- **[USAGE.md](USAGE.md)** - Complete user guide and advanced features
+- **[USAGE.md](docs/USAGE.md)** - Complete user guide and advanced features
 
 ## License
 

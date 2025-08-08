@@ -3,27 +3,38 @@
 ## 1. Prerequisites
 
 - Make sure you have **Docker** and **docker-compose** installed on your computer.
+- Basic understanding of file creation and terminal/command prompt usage.
 
 ## 2. Important Security Warning
 
 This app uses Serveo to expose your local server to the internet. **Your computer will be accessible from outside.**
 
-> ⚠️ **Warning:** Only run this on trusted networks and avoid exposing sensitive data. Anyone with the public URL can access your app while it is running.
+> ⚠️ **Warning:** Only run this on trusted networks and avoid exposing sensitive data. Anyone with the public URL can access your app while it is running. Consider using this app only for educational purposes and ensure no sensitive information is stored on your computer during use.
 
 ## 3. Using the Pre-Built Image
 
-This app runs from the pre-built Docker image: `yoktian/quiz-quest-vibe`.
+This app runs from the pre-built Docker image: `yoktian/quiz-quest-vibe`. You don't need to build anything - just pull and run!
 
 ## 4. Creating Your Questions
 
-Create a `questions` folder. Inside this folder, create a file named `questions.json`.
+### 4.1 Setting Up the Questions Folder
+
+Create a `questions` folder in your project directory. Inside this folder, create a file named `questions.json`.
+
+### 4.2 Understanding Question Structure
+
+Each quiz consists of:
+
+- **Quiz metadata**: Name and description
+- **Questions array**: Individual questions with options, correct answers, timing, and scoring
+
+### 4.3 Question Template
 
 Use this template as a starting point:
 
 ```json
 {
   "setName": "Template Quiz",
-  "roomId": "template-quiz",
   "setDescription": "Description for Template Quiz",
   "questions": [
     {
@@ -56,12 +67,43 @@ Use this template as a starting point:
 
 **Tips:**
 
-- `roomId` is used as the ID for the quiz.
 - Each question should have a unique `id`.
 - `correctAnswer` is the index (starting from 0) of the correct option in the `options` array.
 - You can add as many questions as you like.
 
-> Copy and paste this template to any AI model you like, along with your materials, and instruct the AI model to generate `questions.json` for you.
+### 4.4 Generating Questions with AI
+
+You can use ChatGPT or other AI models to generate questions. Here's a sample prompt:
+
+> **ChatGPT Prompt:**
+> "I need to create a quiz in JSON format. Please generate a `questions.json` file based on [YOUR TOPIC/MATERIALS]. Follow this exact structure:
+>
+> ```json
+> {
+>   "setName": "Quiz Title",
+>   "setDescription": "Quiz description",
+>   "questions": [
+>     {
+>       "id": 1,
+>       "question": "Question text?",
+>       "options": ["Option A", "Option B", "Option C", "Option D"],
+>       "correctAnswer": 0,
+>       "timeLimit": 20,
+>       "points": 1000
+>     }
+>   ]
+> }
+> ```
+>
+> Make sure:
+>
+> - Each question has a unique id starting from 1
+> - correctAnswer is the index (0-3) of the correct option
+> - timeLimit is in seconds (10-30 recommended)
+> - points can vary (500-1000 typical)
+> - Include 10-15 questions total"
+
+Copy and paste this prompt along with your teaching materials or topic to generate your quiz.
 
 ## 5. Setting Up Docker Compose
 
@@ -81,35 +123,60 @@ services:
     restart: unless-stopped
 ```
 
-|-questions/question.json
-|-docker-compose.yml
+Your folder structure should look like this:
+
+```text
+your-folder/
+├── questions/
+│   └── questions.json
+└── docker-compose.yml
+```
 
 ## 6. Starting the App
 
 Make sure your `questions.json` and `docker-compose.yml` are all set up and the paths are correct.
 
-Your folder structure should look something like this:
-
-```sh
-your-folder
-|-questions/questions.json
-|-docker-compose.yml
-```
-
 Start the app with:
 
-```sh
+```bash
 docker-compose up
 ```
 
 Wait for the log output until you see a line like:
 
-```
+```text
 Forwarding HTTP traffic from https://e79727c0542b6d0103a74e71eca89d30.serveo.net
 ```
 
 Open the displayed Serveo URL in your web browser to use the app.
 
+## 7. How to Stop and Clean Up
+
+### Stopping the App
+
+To stop the app, press `Ctrl+C` in the terminal where you ran `docker-compose up`.
+
+Alternatively, you can run:
+
+```bash
+docker-compose down
+```
+
+### Complete Cleanup
+
+To remove all containers and free up disk space:
+
+```bash
+# Stop and remove containers, networks
+docker-compose down
+
+# Remove the Docker image (optional)
+docker rmi yoktian/quiz-quest-vibe
+
+# Clean up unused Docker resources
+docker system prune
+```
+
 ---
 
-Have fun!
+Have fun teaching with Quiz Quest Vibe!

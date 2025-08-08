@@ -1,6 +1,5 @@
 {
   "setName": "General Knowledge Quiz",
-  "roomId": "general-knowledge",
   "setDescription": "A collection of general knowledge questions covering geography, science, math, and literature",
   "questions": [
     {
@@ -38,7 +37,12 @@
     {
       "id": 5,
       "question": "Who wrote 'Romeo and Juliet'?",
-      "options": ["Charles Dickens", "William Shakespeare", "Jane Austen", "Mark Twain"],
+      "options": [
+        "Charles Dickens",
+        "William Shakespeare",
+        "Jane Austen",
+        "Mark Twain"
+      ],
       "correctAnswer": 1,
       "timeLimit": 20,
       "points": 1000
