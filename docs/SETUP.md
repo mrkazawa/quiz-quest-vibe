@@ -2,7 +2,7 @@
 
 ## 1. Prerequisites
 
-- Make sure you have **Docker** and **docker-compose** installed on your computer.
+- Make sure you have **Docker** installed on your computer.
 - Basic understanding of file creation and terminal/command prompt usage.
 
 ## 2. Important Security Warning
@@ -11,28 +11,20 @@ This app uses Serveo to expose your local server to the internet. **Your compute
 
 > ⚠️ **Warning:** Only run this on trusted networks and avoid exposing sensitive data. Anyone with the public URL can access your app while it is running. Consider using this app only for educational purposes and ensure no sensitive information is stored on your computer during use.
 
-## 3. Using the Pre-Built Image
+## 3. Creating Your Questions
 
-This app runs from the pre-built Docker image: `yoktian/quiz-quest-vibe`. You don't need to build anything - just pull and run!
+### 3.1 Setting Up the Questions Folder
 
-```shell
-docker pull yoktian/quiz-quest-vibe
-```
+Create a `questions` folder anywhere on your computer. Inside this folder, create a file named `questions.json`.
 
-## 4. Creating Your Questions
-
-### 4.1 Setting Up the Questions Folder
-
-Create a `questions` folder in your project directory. Inside this folder, create a file named `questions.json`.
-
-### 4.2 Understanding Question Structure
+### 3.2 Understanding Question Structure
 
 Each quiz consists of:
 
 - **Quiz metadata**: Name and description
 - **Questions array**: Individual questions with options, correct answers, timing, and scoring
 
-### 4.3 Question Template
+### 3.3 Question Template
 
 Use this template as a starting point:
 
@@ -75,7 +67,7 @@ Use this template as a starting point:
 - `correctAnswer` is the index (starting from 0) of the correct option in the `options` array.
 - You can add as many questions as you like.
 
-### 4.4 Generating Questions with AI
+### 3.4 Generating Questions with AI
 
 You can use ChatGPT or other AI models to generate questions. Here's a sample prompt:
 
@@ -109,79 +101,116 @@ You can use ChatGPT or other AI models to generate questions. Here's a sample pr
 
 Copy and paste this prompt along with your teaching materials or topic to generate your quiz.
 
-You can customize the timeLimit, points, and number of question.
+You can customize the timeLimit, points, and number of questions.
 
-## 5. Setting Up Docker Compose
+## 4. Running the App
 
-Create a `docker-compose.yml` file in your project root (or use the provided one) with the following content:
+### 4.1 Pull the Latest Version (Recommended)
 
-```yaml
-version: "3.8"
-services:
-  app:
-    image: yoktian/quiz-quest-vibe
-    ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=development
-      - TEACHER_PASSWORD=admin # change your password here
-    volumes:
-      - ./questions:/app/questions
-    restart: unless-stopped
-```
-
-Your folder structure should look like this:
-
-```text
-your-folder/
-├── questions/
-│   └── questions.json
-└── docker-compose.yml
-```
-
-## 6. Starting the App
-
-Make sure your `questions.json` and `docker-compose.yml` are all set up and the paths are correct.
-
-Start the app with:
+Before running the app, it's recommended to pull the latest version:
 
 ```bash
-docker-compose up
+docker pull yoktian/quiz-quest-vibe
 ```
 
-Wait for the log output until you see a line like:
+This ensures you have the most up-to-date version with the latest features and bug fixes.
 
-```text
-Forwarding HTTP traffic from https://e79727c0542b6d0103a74e71eca89d30.serveo.net
+### 4.2 One-Command Setup
+
+Simply copy and paste this command into your terminal/command prompt:
+
+**For Windows (PowerShell/CMD):**
+
+```bash
+docker run -d -p 3000:3000 -e NODE_ENV=development -e TEACHER_PASSWORD=admin -v "%cd%\questions:/app/questions" --name quiz-quest yoktian/quiz-quest-vibe
 ```
 
-Open the displayed Serveo URL in your web browser to use the app.
+**For macOS/Linux:**
 
-## 7. How to Stop and Clean Up
+```bash
+docker run -d -p 3000:3000 -e NODE_ENV=development -e TEACHER_PASSWORD=admin -v "$(pwd)/questions:/app/questions" --name quiz-quest yoktian/quiz-quest-vibe
+```
+
+> **Important:** Make sure you run this command from the folder where your `questions` folder is located!
+
+### 4.3 What This Command Does
+
+- Downloads the Quiz Quest app automatically
+- Starts the app on your computer
+- Makes your quiz questions available to the app
+- Sets up the teacher password as "admin" (you can change this)
+- Exposes your app to the internet via Serveo
+
+### 4.4 Getting Your Public URL
+
+After running the command, get your public URL with this simple command:
+
+**For Windows (PowerShell/CMD):**
+
+```bash
+docker logs quiz-quest | findstr "serveo.net"
+```
+
+**For macOS/Linux:**
+
+```bash
+docker logs quiz-quest | grep "serveo.net"
+```
+
+This will show you a line like:
+
+```
+Forwarding HTTP traffic from https://abc123.serveo.net
+```
+
+Copy that URL (https://abc123.serveo.net) and open it in your web browser to use the app!
+
+> **Note:** It may take 10-30 seconds for the Serveo URL to appear. If you don't see it immediately, wait a moment and try the command again.
+
+## 5. Using the App
+
+1. **Students**: Give them the public Serveo URL
+2. **Teachers**:
+   - Go to the same URL
+   - Click "Teacher Login"
+   - Enter password: `admin` (or whatever you set)
+   - Create rooms and manage quizzes
+
+## 6. How to Stop and Clean Up
 
 ### Stopping the App
 
-To stop the app, press `Ctrl+C` in the terminal where you ran `docker-compose up`.
-
-Alternatively, you can run:
-
 ```bash
-docker-compose down
+docker stop quiz-quest
+docker rm quiz-quest
 ```
 
-### Complete Cleanup
+### Complete Cleanup (Optional)
 
-To remove all containers and free up disk space:
+To free up disk space:
 
 ```bash
-# Stop and remove containers, networks
-docker-compose down
-
-# Remove the Docker image (optional)
+# Remove the Docker image
 docker rmi yoktian/quiz-quest-vibe
 
 # Clean up unused Docker resources
 docker system prune
+```
+
+## 7. Troubleshooting
+
+### Common Issues:
+
+1. **"questions folder not found"** - Make sure you're running the docker command from the correct folder
+2. **"Port already in use"** - Stop any other apps using port 3000, or change `-p 3000:3000` to `-p 3001:3000`
+3. **"Permission denied"** - On Linux/macOS, you might need to add `sudo` before the docker command
+
+### Getting Help:
+
+Check the app logs for errors:
+
+```bash
+docker logs quiz-quest
 ```
 
 ---
