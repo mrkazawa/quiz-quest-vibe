@@ -76,19 +76,17 @@ function loadAvailableQuizzes() {
         row.innerHTML = `
           <td>
             <h5 class="mb-1 text-primary fw-bold">${quiz.name}</h5>
-            ${
-              quiz.description
-                ? `<p class="mb-0 text-secondary">${quiz.description}</p>`
-                : '<p class="mb-0 text-muted fst-italic">No description available</p>'
-            }
+            ${quiz.description
+            ? `<p class="mb-0 text-secondary">${quiz.description}</p>`
+            : '<p class="mb-0 text-muted fst-italic">No description available</p>'
+          }
           </td>
           <td class="text-center align-middle">
             <span class="badge bg-info fs-6">${quiz.questionCount}</span>
           </td>
           <td class="text-center align-middle">
-            <button class="btn btn-success btn-sm create-room-btn" data-quiz-id="${
-              quiz.id
-            }" style="min-width: 100px;">
+            <button class="btn btn-success btn-sm create-room-btn" data-quiz-id="${quiz.id
+          }" style="min-width: 100px;">
               <i class="bi bi-plus-circle"></i> Create Room
             </button>
           </td>
@@ -128,6 +126,163 @@ document.addEventListener("DOMContentLoaded", () => {
       // Navigate to dashboard
       window.location.hash = "#dashboard";
     });
+  }
+
+  // Create New Quiz Modal handlers
+  const createNewQuizBtn = document.getElementById("createNewQuizBtn");
+  const saveNewQuizBtn = document.getElementById("saveNewQuizBtn");
+  const quizJsonInput = document.getElementById("quizJsonInput");
+  const validationMessage = document.getElementById("quizValidationMessage");
+  let createNewQuizModal;
+
+  // Initialize modal
+  const modalElement = document.getElementById("createNewQuizModal");
+  if (modalElement) {
+    createNewQuizModal = new bootstrap.Modal(modalElement);
+  }
+
+  if (createNewQuizBtn && createNewQuizModal) {
+    createNewQuizBtn.addEventListener("click", () => {
+      // Reset modal state
+      quizJsonInput.value = "";
+      validationMessage.classList.add("d-none");
+      validationMessage.classList.remove("alert-success", "alert-danger");
+      createNewQuizModal.show();
+    });
+  }
+
+  if (saveNewQuizBtn) {
+    saveNewQuizBtn.addEventListener("click", async () => {
+      const jsonText = quizJsonInput.value.trim();
+
+      if (!jsonText) {
+        showValidationMessage("Please paste your quiz JSON.", "danger");
+        return;
+      }
+
+      try {
+        // Parse and validate JSON
+        const quizData = JSON.parse(jsonText);
+        const validation = validateQuizJson(quizData);
+
+        if (!validation.valid) {
+          showValidationMessage(validation.error, "danger");
+          return;
+        }
+
+        // Show loading state
+        saveNewQuizBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Creating...';
+        saveNewQuizBtn.disabled = true;
+
+        // Send to server
+        const response = await fetch('/api/create-quiz', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(quizData)
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+          showValidationMessage(`Quiz "${quizData.setName}" created successfully!`, "success");
+
+          // Close modal after short delay and refresh quiz list
+          setTimeout(() => {
+            createNewQuizModal.hide();
+            loadAvailableQuizzes(); // Refresh the quiz list
+          }, 1500);
+        } else {
+          showValidationMessage(result.error || "Failed to create quiz", "danger");
+        }
+      } catch (error) {
+        if (error instanceof SyntaxError) {
+          showValidationMessage("Invalid JSON format. Please check your JSON syntax.", "danger");
+        } else {
+          showValidationMessage("Error creating quiz: " + error.message, "danger");
+        }
+      } finally {
+        // Reset button state
+        saveNewQuizBtn.innerHTML = '<i class="bi bi-check-lg"></i> Create Quiz';
+        saveNewQuizBtn.disabled = false;
+      }
+    });
+  }
+
+  // Template download button handler
+  const downloadTemplateBtn = document.getElementById("downloadTemplateBtn");
+  if (downloadTemplateBtn) {
+    downloadTemplateBtn.addEventListener("click", (e) => {
+      // The link already handles the download, but we can add visual feedback
+      const originalText = downloadTemplateBtn.innerHTML;
+      downloadTemplateBtn.innerHTML = '<i class="bi bi-check"></i> Downloaded!';
+      downloadTemplateBtn.classList.remove("btn-outline-success");
+      downloadTemplateBtn.classList.add("btn-success");
+
+      setTimeout(() => {
+        downloadTemplateBtn.innerHTML = originalText;
+        downloadTemplateBtn.classList.remove("btn-success");
+        downloadTemplateBtn.classList.add("btn-outline-success");
+      }, 2000);
+    });
+  }
+
+  function showValidationMessage(message, type) {
+    validationMessage.className = `alert alert-${type}`;
+    validationMessage.textContent = message;
+    validationMessage.classList.remove("d-none");
+  }
+
+  function validateQuizJson(quizData) {
+    // Check required top-level fields
+    if (!quizData.setName || typeof quizData.setName !== 'string') {
+      return { valid: false, error: "Missing or invalid 'setName' field" };
+    }
+
+    if (!quizData.setDescription || typeof quizData.setDescription !== 'string') {
+      return { valid: false, error: "Missing or invalid 'setDescription' field" };
+    }
+
+    if (!Array.isArray(quizData.questions) || quizData.questions.length === 0) {
+      return { valid: false, error: "Missing or empty 'questions' array" };
+    }
+
+    // Validate each question
+    for (let i = 0; i < quizData.questions.length; i++) {
+      const q = quizData.questions[i];
+      const qNum = i + 1;
+
+      if (!Number.isInteger(q.id)) {
+        return { valid: false, error: `Question ${qNum}: Missing or invalid 'id' field` };
+      }
+
+      if (!q.question || typeof q.question !== 'string') {
+        return { valid: false, error: `Question ${qNum}: Missing or invalid 'question' field` };
+      }
+
+      if (!Array.isArray(q.options) || q.options.length !== 4) {
+        return { valid: false, error: `Question ${qNum}: 'options' must be an array of exactly 4 strings` };
+      }
+
+      if (!q.options.every(opt => typeof opt === 'string')) {
+        return { valid: false, error: `Question ${qNum}: All options must be strings` };
+      }
+
+      if (!Number.isInteger(q.correctAnswer) || q.correctAnswer < 0 || q.correctAnswer > 3) {
+        return { valid: false, error: `Question ${qNum}: 'correctAnswer' must be an integer between 0 and 3` };
+      }
+
+      if (!Number.isInteger(q.timeLimit) || q.timeLimit <= 0) {
+        return { valid: false, error: `Question ${qNum}: 'timeLimit' must be a positive integer` };
+      }
+
+      if (!Number.isInteger(q.points) || q.points <= 0) {
+        return { valid: false, error: `Question ${qNum}: 'points' must be a positive integer` };
+      }
+    }
+
+    return { valid: true };
   }
   // Download CSV button for quiz history detail
   const downloadHistoryCsvBtn = document.getElementById(
@@ -805,9 +960,8 @@ socket.on("question_ended", (data) => {
     row.innerHTML = `
       <td>
         ${answer.playerName}
-        <small class="d-block text-muted">ID: ${
-          answer.studentId || "N/A"
-        }</small>
+        <small class="d-block text-muted">ID: ${answer.studentId || "N/A"
+      }</small>
       </td>
       <td>${answerText}</td>
       <td>${resultIcon}</td>
@@ -829,8 +983,8 @@ nextQuestionBtn.addEventListener("click", () => {
       currentQuestion && currentQuestion.totalQuestions
         ? currentQuestion.totalQuestions
         : quizQuestions
-        ? quizQuestions.length
-        : 0;
+          ? quizQuestions.length
+          : 0;
 
     // Get current question number - check both from currentQuestion data and currentQuestionIndex
     let currentNum;
@@ -907,9 +1061,8 @@ socket.on("quiz_ended", (data) => {
                 <td>#${player.rank}</td>
                 <td>
                   ${player.playerName}
-                  <small class="d-block text-muted">ID: ${
-                    player.studentId || "N/A"
-                  }</small>
+                  <small class="d-block text-muted">ID: ${player.studentId || "N/A"
+                }</small>
                 </td>
                 <td>${player.score}</td>
               `;
@@ -1447,9 +1600,8 @@ function loadHistoryDetail(historyId) {
             <td>#${player.rank}</td>
             <td>
               ${player.playerName}
-              <small class="d-block text-muted">ID: ${
-                player.studentId || "N/A"
-              }</small>
+              <small class="d-block text-muted">ID: ${player.studentId || "N/A"
+            }</small>
             </td>
             <td>${player.score}</td>
           `;
@@ -1552,9 +1704,8 @@ function loadQuizCompletionData(roomId) {
             <td>#${player.rank}</td>
             <td>
               ${player.playerName}
-              <small class="d-block text-muted">ID: ${
-                player.studentId || "N/A"
-              }</small>
+              <small class="d-block text-muted">ID: ${player.studentId || "N/A"
+            }</small>
             </td>
             <td>${player.score}</td>
           `;

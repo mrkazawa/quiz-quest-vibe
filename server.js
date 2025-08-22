@@ -586,8 +586,7 @@ io.on("connection", (socket) => {
     socket.join(roomId);
 
     console.log(
-      `Teacher ${socket.id} (teacherId: ${teacherId}) ${
-        isSameTeacher ? "rejoined" : "joined"
+      `Teacher ${socket.id} (teacherId: ${teacherId}) ${isSameTeacher ? "rejoined" : "joined"
       } room ${roomId}`
     );
 
@@ -867,8 +866,7 @@ function moveToNextQuestion(roomId) {
   rooms[roomId].questionEndedState = false;
 
   console.log(
-    `Sending new question ${nextQuestionObj.id} to ${
-      Object.keys(rooms[roomId].players).length
+    `Sending new question ${nextQuestionObj.id} to ${Object.keys(rooms[roomId].players).length
     } players`
   );
 
@@ -1053,19 +1051,146 @@ app.get("/api/logout", (req, res) => {
 // Get available quizzes
 app.get("/api/quizzes", (req, res) => {
   const availableQuizzes = Object.keys(questionSets).map((quizId) => {
-    const quizSet = questionSets[quizId];
+    const questionSet = questionSets[quizId];
     return {
       id: quizId,
-      name: quizSet.name || quizId,
-      description: quizSet.description || "",
-      questionCount: quizSet.questions.length,
-      // Include first question as preview
-      firstQuestion:
-        quizSet.questions.length > 0 ? quizSet.questions[0].question : null,
+      name: questionSet.name,
+      description: questionSet.description || "No description available",
+      questionCount: questionSet.questions.length,
     };
   });
 
   res.json(availableQuizzes);
+});
+
+// Download quiz template
+app.get("/api/quiz-template", (req, res) => {
+  const templatePath = path.join(__dirname, "docs", "template-quiz.json");
+  res.download(templatePath, "template-quiz.json", (err) => {
+    if (err) {
+      console.error("Error sending template file:", err);
+      res.status(404).json({ error: "Template file not found" });
+    }
+  });
+});
+
+// Create new quiz endpoint
+app.post("/api/create-quiz", (req, res) => {
+  // Only allow teachers to create quizzes
+  if (!req.session || !req.session.isTeacher) {
+    return res.status(401).json({ success: false, error: "Unauthorized" });
+  }
+
+  try {
+    const quizData = req.body;
+
+    // Validate required fields
+    if (!quizData.setName || typeof quizData.setName !== 'string') {
+      return res.status(400).json({ success: false, error: "Missing or invalid 'setName' field" });
+    }
+
+    if (!quizData.setDescription || typeof quizData.setDescription !== 'string') {
+      return res.status(400).json({ success: false, error: "Missing or invalid 'setDescription' field" });
+    }
+
+    if (!Array.isArray(quizData.questions) || quizData.questions.length === 0) {
+      return res.status(400).json({ success: false, error: "Missing or empty 'questions' array" });
+    }
+
+    // Generate unique quiz ID from the name
+    const baseId = quizData.setName.toLowerCase()
+      .replace(/[^a-z0-9\s]/g, '') // Remove special characters
+      .replace(/\s+/g, '-') // Replace spaces with hyphens
+      .trim();
+
+    let quizId = baseId;
+    let counter = 1;
+
+    // Ensure unique ID
+    while (questionSets[quizId]) {
+      quizId = `${baseId}-${counter}`;
+      counter++;
+    }
+
+    // Validate each question
+    for (let i = 0; i < quizData.questions.length; i++) {
+      const q = quizData.questions[i];
+      const qNum = i + 1;
+
+      if (!Number.isInteger(q.id)) {
+        return res.status(400).json({ success: false, error: `Question ${qNum}: Missing or invalid 'id' field` });
+      }
+
+      if (!q.question || typeof q.question !== 'string') {
+        return res.status(400).json({ success: false, error: `Question ${qNum}: Missing or invalid 'question' field` });
+      }
+
+      if (!Array.isArray(q.options) || q.options.length !== 4) {
+        return res.status(400).json({ success: false, error: `Question ${qNum}: 'options' must be an array of exactly 4 strings` });
+      }
+
+      if (!q.options.every(opt => typeof opt === 'string')) {
+        return res.status(400).json({ success: false, error: `Question ${qNum}: All options must be strings` });
+      }
+
+      if (!Number.isInteger(q.correctAnswer) || q.correctAnswer < 0 || q.correctAnswer > 3) {
+        return res.status(400).json({ success: false, error: `Question ${qNum}: 'correctAnswer' must be an integer between 0 and 3` });
+      }
+
+      if (!Number.isInteger(q.timeLimit) || q.timeLimit <= 0) {
+        return res.status(400).json({ success: false, error: `Question ${qNum}: 'timeLimit' must be a positive integer` });
+      }
+
+      if (!Number.isInteger(q.points) || q.points <= 0) {
+        return res.status(400).json({ success: false, error: `Question ${qNum}: 'points' must be a positive integer` });
+      }
+    }
+
+    // Add the quiz to memory (in a real app, you'd save to database/file)
+    questionSets[quizId] = {
+      name: quizData.setName,
+      description: quizData.setDescription,
+      questions: quizData.questions,
+      createdAt: new Date().toISOString()
+    };
+
+    // Optionally save to file for persistence
+    const fs = require('fs');
+    const path = require('path');
+    const questionsDir = path.join(__dirname, 'questions');
+
+    try {
+      if (!fs.existsSync(questionsDir)) {
+        fs.mkdirSync(questionsDir, { recursive: true });
+      }
+
+      const fileName = `${quizId}.json`;
+      const filePath = path.join(questionsDir, fileName);
+
+      const fileContent = {
+        setName: quizData.setName,
+        roomId: quizId,
+        setDescription: quizData.setDescription,
+        questions: quizData.questions
+      };
+
+      fs.writeFileSync(filePath, JSON.stringify(fileContent, null, 2));
+      console.log(`Quiz saved to file: ${filePath}`);
+    } catch (fileError) {
+      console.warn('Failed to save quiz to file:', fileError.message);
+      // Continue anyway since quiz is in memory
+    }
+
+    res.json({
+      success: true,
+      quizId: quizId,
+      message: `Quiz "${quizData.setName}" created successfully`
+    });
+
+  } catch (error) {
+    console.error('Error creating quiz:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
 });
 
 // Get active rooms (existing sessions)

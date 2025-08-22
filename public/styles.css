@@ -1,5 +1,5 @@
 body {
-  font-family: 'Roboto', 'Arial', sans-serif;
+  font-family: "Roboto", "Arial", sans-serif;
   background-color: #ffffff; /* White background instead of grey */
   margin: 0;
   padding: 0;
@@ -58,8 +58,6 @@ a.quiz-logo-clickable:hover img.quiz-logo-clickable {
   min-height: 60px; /* Ensure empty headers still have height */
 }
 
-
-
 .card-header.text-center {
   background-color: white !important;
 }
@@ -70,7 +68,9 @@ a.quiz-logo-clickable:hover img.quiz-logo-clickable {
 }
 
 /* Removes card outlines and borders */
-.card, .card-header, .card-body {
+.card,
+.card-header,
+.card-body {
   border-radius: 0 !important;
 }
 
@@ -242,17 +242,26 @@ a.quiz-logo-clickable:hover img.quiz-logo-clickable {
 }
 
 @keyframes fadeInOut {
-  0% { opacity: 0; }
-  10% { opacity: 1; }
-  90% { opacity: 1; }
-  100% { opacity: 0; }
+  0% {
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
 }
 
 .ranking-table {
   width: 100%;
 }
 
-.ranking-table th, .ranking-table td {
+.ranking-table th,
+.ranking-table td {
   padding: 10px;
   text-align: left;
 }
@@ -298,7 +307,9 @@ a.quiz-logo-clickable:hover img.quiz-logo-clickable {
 }
 
 /* Additional header styling for the app */
-h2, h3, h4 {
+h2,
+h3,
+h4 {
   font-weight: 600;
   margin-bottom: 20px;
 }
@@ -308,7 +319,8 @@ h2 {
 }
 
 /* Header styling - flat material design without separator line */
-.bg-primary, .bg-success {
+.bg-primary,
+.bg-success {
   width: 100%;
   padding: 16px 16px 12px;
   color: #000000; /* Black text color for maximum visibility */
@@ -321,7 +333,10 @@ h2 {
 }
 
 /* Enhanced header styling for section titles */
-h1.bg-primary, h1.bg-success, h2.bg-primary, h2.bg-success {
+h1.bg-primary,
+h1.bg-success,
+h2.bg-primary,
+h2.bg-success {
   font-size: 1.8rem;
   font-weight: 600; /* Increased font weight */
   letter-spacing: 0.5px;
@@ -450,11 +465,17 @@ input.form-control:focus {
 }
 
 /* Use Bootstrap's button hover states but preserve text color */
-.btn-primary:hover, .btn-success:hover, .btn-danger:hover, .btn-info:hover {
+.btn-primary:hover,
+.btn-success:hover,
+.btn-danger:hover,
+.btn-info:hover {
   color: #fff;
 }
 
-.btn-outline-primary:hover, .btn-outline-success:hover, .btn-outline-danger:hover, .btn-outline-info:hover {
+.btn-outline-primary:hover,
+.btn-outline-success:hover,
+.btn-outline-danger:hover,
+.btn-outline-info:hover {
   color: #fff;
 }
 
@@ -465,11 +486,12 @@ input.form-control:focus {
 }
 
 /* Teacher and Student role buttons */
-.btn-teacher, .btn-student {
+.btn-teacher,
+.btn-student {
   border-width: 2px;
   font-weight: 500;
   color: #fff;
-  text-shadow: 0 1px 1px rgba(0,0,0,0.2);
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
 }
 
 .btn-success {
@@ -586,7 +608,7 @@ input.form-control:focus {
   .homepage-container {
     padding: 15px;
   }
-  
+
   .homepage-content {
     max-width: 500px;
   }
@@ -596,11 +618,11 @@ input.form-control:focus {
   .homepage-container {
     padding: 10px;
   }
-  
+
   .homepage-content {
     max-width: 400px;
   }
-  
+
   .home-buttons {
     max-width: 300px;
   }
@@ -608,7 +630,8 @@ input.form-control:focus {
 
 /* Responsive adjustments */
 @media (min-width: 1200px) {
-  .container, .alert {
+  .container,
+  .alert {
     padding: 0;
     width: 92%; /* Consistent width on very large screens */
     max-width: 900px; /* Hard cap on width */
@@ -616,7 +639,8 @@ input.form-control:focus {
 }
 
 @media (min-width: 768px) and (max-width: 1199px) {
-  .container, .alert {
+  .container,
+  .alert {
     padding: 0;
     width: 92%;
     max-width: 900px;
@@ -624,7 +648,8 @@ input.form-control:focus {
 }
 
 @media (max-width: 767px) {
-  .container, .alert {
+  .container,
+  .alert {
     width: 100%;
     padding: 0 8px;
   }
@@ -672,13 +697,16 @@ table th {
 }
 
 /* Material design for quiz containers */
-#quizQuestionScreen .card, #waitingRoomScreen .card {
+#quizQuestionScreen .card,
+#waitingRoomScreen .card {
   background-color: transparent !important;
   border-bottom: 1px solid #eaeaea !important;
 }
 
 /* Override any text-white classes in card headers */
-.card-header.text-white, .card-header.bg-primary, .card-header.bg-success {
+.card-header.text-white,
+.card-header.bg-primary,
+.card-header.bg-success {
   color: #000000 !important; /* Force black text for all headers */
 }
 
@@ -687,6 +715,11 @@ table th {
   color: #000000 !important;
   background-color: transparent !important;
   border-bottom: none;
+}
+
+/* Remove margin-bottom from modal headers with bg-success */
+.modal-header.bg-success {
+  margin-bottom: 0 !important;
 }
 
 /* Responsive adjustments for logo and title */
@@ -735,7 +768,7 @@ table th {
     min-height: 100vh;
     padding: 15px;
   }
-  
+
   .final-results-button {
     padding-bottom: 30px;
   }
@@ -746,7 +779,7 @@ table th {
     min-height: 100vh;
     padding: 10px;
   }
-  
+
   .final-results-button {
     padding-bottom: 20px;
   }
@@ -789,7 +822,7 @@ table th {
     min-height: 100vh;
     padding: 15px;
   }
-  
+
   .join-quiz-button {
     padding-bottom: 30px;
   }
@@ -800,7 +833,7 @@ table th {
     min-height: 100vh;
     padding: 10px;
   }
-  
+
   .join-quiz-button {
     padding-bottom: 20px;
   }
@@ -808,7 +841,9 @@ table th {
 
 /* Question Results Screen - Full Height Layout */
 .question-results-container {
-  min-height: calc(100vh - 180px); /* Full height minus header and alert space */
+  min-height: calc(
+    100vh - 180px
+  ); /* Full height minus header and alert space */
   display: flex;
   flex-direction: column;
   justify-content: center;

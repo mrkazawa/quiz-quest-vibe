@@ -1,0 +1,30 @@
+{
+  "setName": "Template Quiz",
+  "setDescription": "Description for Template Quiz",
+  "questions": [
+    {
+      "id": 1,
+      "question": "What is the first question?",
+      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "correctAnswer": 0,
+      "timeLimit": 20,
+      "points": 1000
+    },
+    {
+      "id": 2,
+      "question": "What is the second question?",
+      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "correctAnswer": 1,
+      "timeLimit": 15,
+      "points": 800
+    },
+    {
+      "id": 3,
+      "question": "What is the third question?",
+      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "correctAnswer": 2,
+      "timeLimit": 10,
+      "points": 500
+    }
+  ]
+}
