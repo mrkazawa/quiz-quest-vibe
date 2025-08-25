@@ -111,6 +111,19 @@ function loadAvailableQuizzes() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  // Initialize language from server and apply translations
+  LanguageUtils.initLanguageFromServer().then((language) => {
+    LanguageUtils.applyTranslations(language);
+    
+    // Apply translations to header title if needed
+    if (typeof updateHeaderTitle === "function") {
+      const currentScreen = getCurrentScreenName();
+      if (currentScreen) {
+        updateHeaderTitle(LanguageUtils.t(currentScreen.toLowerCase().replace(/\s+/g, '_')));
+      }
+    }
+  });
+
   // Add event handler for Start New Quiz button in completion screen
   const startNewQuizBtn = document.querySelector(
     ".btn.btn-lg.btn-primary.flex-grow-1.me-2"
@@ -456,9 +469,7 @@ document.addEventListener("DOMContentLoaded", () => {
           const url = URL.createObjectURL(blob);
           const a = document.createElement("a");
           a.href = url;
-          a.download = roomId
-            ? `quiz-result-${roomId}.csv`
-            : "quiz-history-rankings.csv";
+          a.download = `quiz-result-${roomId}.csv`;
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
@@ -1413,6 +1424,21 @@ socket.on("join_error", (message) => {
 // const logoHome = document.getElementById('logoHome');
 // No click event for logo in teacher view
 
+// Function to get current screen name for translation
+function getCurrentScreenName() {
+  if (!quizSelectionScreen.classList.contains("d-none")) return "dashboard";
+  if (!waitingRoomScreen.classList.contains("d-none")) return "waiting_room";
+  if (!quizRunningScreen.classList.contains("d-none")) return "quiz_in_progress";
+  if (!questionResultsScreen.classList.contains("d-none")) return "question_results";
+  if (!quizCompletionScreen.classList.contains("d-none")) return "quiz_result";
+  if (!quizHistoryScreen.classList.contains("d-none")) return "quiz_history";
+  if (!historyDetailScreen.classList.contains("d-none")) return "quiz_history_detail";
+  if (!createRoomScreen.classList.contains("d-none")) return "create_room";
+  const createNewQuizScreen = document.getElementById("createNewQuizScreen");
+  if (createNewQuizScreen && !createNewQuizScreen.classList.contains("d-none")) return "create_new_quiz";
+  return null;
+}
+
 // Hide all screens except the one specified
 function showScreen(screenToShow) {
   // Hide all screens
@@ -1434,35 +1460,37 @@ function showScreen(screenToShow) {
   // Show the specified screen
   screenToShow.classList.remove("d-none");
 
-  // Update the header title based on the current screen
-  let screenName = "";
+  // Update the header title based on the current screen using translations
+  let screenKey = "";
   if (screenToShow === quizSelectionScreen) {
-    screenName = "Quiz Selection";
+    screenKey = "dashboard";
   } else if (screenToShow === waitingRoomScreen) {
-    screenName = "Waiting Room";
+    screenKey = "waiting_room";
   } else if (screenToShow === quizRunningScreen) {
-    screenName = "Quiz in Progress";
+    screenKey = "quiz_in_progress";
   } else if (screenToShow === questionResultsScreen) {
-    screenName = "Question Results";
+    screenKey = "question_results";
   } else if (screenToShow === quizCompletionScreen) {
-    screenName = "Quiz Result";
+    screenKey = "quiz_result";
   } else if (screenToShow === quizHistoryScreen) {
-    screenName = "Quiz History";
+    screenKey = "quiz_history";
   } else if (screenToShow === historyDetailScreen) {
-    screenName = "Quiz History Detail";
+    screenKey = "quiz_history_detail";
   } else if (screenToShow === createRoomScreen) {
-    screenName = "Create Room";
+    screenKey = "create_room";
   } else if (screenToShow === createNewQuizScreen) {
-    screenName = "Create New Quiz";
+    screenKey = "create_new_quiz";
   }
 
-  // Use the utility function if available, otherwise update directly
-  if (typeof updateHeaderTitle === "function") {
-    updateHeaderTitle(screenName);
-  } else {
-    const headerTitle = document.getElementById("headerTitle");
-    if (headerTitle) headerTitle.textContent = screenName;
+  // Use the utility function with translation
+  if (typeof updateHeaderTitle === "function" && screenKey) {
+    updateHeaderTitle(LanguageUtils.t(screenKey));
   }
+
+  // Apply translations after screen change
+  setTimeout(() => {
+    LanguageUtils.applyTranslations();
+  }, 100);
 }
 
 // Function to load quiz history

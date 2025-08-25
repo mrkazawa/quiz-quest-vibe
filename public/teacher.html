@@ -228,8 +228,7 @@
           <div class="card">
             <div class="card-body">
               <div class="alert alert-info mb-4">
-                <i class="bi bi-info-circle"></i> Select a quiz to create a new
-                room. Each question set becomes a room that students can join.
+                <i class="bi bi-info-circle"></i> <span data-lang-key="select_quiz_create_room">Select a quiz to create a new room. Each question set becomes a room that students can join.</span>
               </div>
               <div class="card mb-4">
                 <div class="card-body p-0">
@@ -237,7 +236,7 @@
                     <!-- Quiz list will be populated here -->
                     <div class="text-center my-3">
                       <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading quizzes...</span>
+                        <span class="visually-hidden" data-lang-key="loading">Loading quizzes...</span>
                       </div>
                     </div>
                   </div>
@@ -245,13 +244,13 @@
               </div>
               <div class="d-flex gap-2">
                 <button id="createNewQuizBtn" class="btn btn-success">
-                  <i class="bi bi-plus-lg"></i> Create New Quiz
+                  <i class="bi bi-plus-lg"></i> <span data-lang-key="create_new_quiz">Create New Quiz</span>
                 </button>
                 <button id="refreshQuizzesBtn" class="btn btn-outline-primary">
-                  <i class="bi bi-arrow-clockwise"></i> Refresh Quiz List
+                  <i class="bi bi-arrow-clockwise"></i> <span data-lang-key="refresh_quiz_list">Refresh Quiz List</span>
                 </button>
                 <button id="showQuizHistoryBtn" class="btn btn-info">
-                  <i class="bi bi-clock-history"></i> Quiz History
+                  <i class="bi bi-clock-history"></i> <span data-lang-key="quiz_history">Quiz History</span>
                 </button>
               </div>
             </div>
@@ -265,12 +264,12 @@
           <div class="card">
             <div class="card-body">
               <div class="alert alert-success mb-4">
-                <i class="bi bi-check-circle"></i> Room created successfully!
+                <i class="bi bi-check-circle"></i> <span data-lang-key="room_created_successfully">Room created successfully!</span>
               </div>
 
               <div class="mb-4">
-                <h4 style="color: #6c757d">Room Information</h4>
-                <p>Share this link with your students:</p>
+                <h4 style="color: #6c757d" data-lang-key="room_information">Room Information</h4>
+                <p data-lang-key="share_link_students">Share this link with your students:</p>
                 <div class="input-group mb-2">
                   <input
                     type="text"
@@ -284,7 +283,7 @@
                     "
                   />
                   <button id="copyLinkBtn" class="btn btn-outline-secondary">
-                    <i class="bi bi-clipboard"></i> Copy
+                    <i class="bi bi-clipboard"></i> <span data-lang-key="copy">Copy</span>
                   </button>
                 </div>
                 <div
@@ -294,22 +293,22 @@
                     id="qrCodeContainer"
                     style="width: 256px; height: 256px"
                   ></div>
-                  <div class="mt-2 text-muted" style="font-size: 1rem">
+                  <div class="mt-2 text-muted" style="font-size: 1rem" data-lang-key="scan_qr_mobile">
                     Scan QR code to join on mobile
                   </div>
                 </div>
                 <small class="text-muted">
-                  Students can also join by entering room ID:
+                  <span data-lang-key="students_join_room_id">Students can also join by entering room ID:</span>
                   <span id="roomIdDisplay" class="fw-bold"></span>
                 </small>
               </div>
 
               <div class="mb-4">
-                <h4 style="color: #6c757d">Players</h4>
+                <h4 style="color: #6c757d" data-lang-key="players">Players</h4>
                 <div class="card">
                   <div class="card-body player-list">
                     <div id="playersList" class="d-flex flex-wrap gap-2">
-                      <div class="text-center text-muted w-100">
+                      <div class="text-center text-muted w-100" data-lang-key="no_players_joined">
                         No players have joined yet
                       </div>
                     </div>
@@ -320,16 +319,13 @@
               <div class="row g-2">
                 <div class="col-auto">
                   <button id="backToDashboardBtn" class="btn btn-secondary">
-                    <i class="bi bi-arrow-left"></i> Back
+                    <i class="bi bi-arrow-left"></i> <span data-lang-key="back">Back</span>
                   </button>
                 </div>
                 <div class="col-auto">
                   <button id="startQuizBtn" class="btn btn-success">
-                    <i class="bi bi-play-fill"></i> Start Quiz
+                    <i class="bi bi-play-fill"></i> <span data-lang-key="start_quiz">Start Quiz</span>
                   </button>
-                </div>
-                <div class="col-auto">
-                  <!-- Delete Room button removed -->
                 </div>
               </div>
             </div>
@@ -385,8 +381,7 @@
               </div>
 
               <div class="alert alert-info">
-                <i class="bi bi-info-circle"></i> You are in teacher view.
-                Students are answering this question.
+                <i class="bi bi-info-circle"></i> <span data-lang-key="teacher_view_students_answering">You are in teacher view. Students are answering this question.</span>
               </div>
             </div>
           </div>
@@ -428,15 +423,15 @@
               </div>
 
               <div class="mb-4">
-                <h4>Player Results</h4>
+                <h4 data-lang-key="player_results">Player Results</h4>
                 <div class="table-responsive">
                   <table class="table table-striped">
                     <thead>
                       <tr>
-                        <th>Player</th>
-                        <th>Answer</th>
-                        <th>Result</th>
-                        <th>Score</th>
+                        <th data-lang-key="player">Player</th>
+                        <th data-lang-key="answer">Answer</th>
+                        <th data-lang-key="result">Result</th>
+                        <th data-lang-key="score">Score</th>
                       </tr>
                     </thead>
                     <tbody id="playerResultsTable">
@@ -448,7 +443,7 @@
 
               <div class="d-grid">
                 <button id="nextQuestionBtn" class="btn btn-lg btn-primary">
-                  <i class="bi bi-arrow-right"></i> Next Question
+                  <i class="bi bi-arrow-right"></i> <span data-lang-key="next_question">Next Question</span>
                 </button>
               </div>
             </div>
@@ -462,8 +457,7 @@
           <div class="card">
             <div class="card-body">
               <div class="alert alert-success mb-4">
-                <i class="bi bi-check-circle-fill"></i> Quiz has ended
-                successfully! Results have been saved to history.
+                <i class="bi bi-check-circle-fill"></i> <span data-lang-key="quiz_ended_successfully">Quiz has ended successfully! Results have been saved to history.</span>
               </div>
 
               <div class="mb-3">
@@ -475,14 +469,14 @@
               </div>
 
               <div class="mb-4">
-                <h4>Final Rankings</h4>
+                <h4 data-lang-key="final_rankings">Final Rankings</h4>
                 <div class="table-responsive mb-3">
                   <table class="table ranking-table">
                     <thead>
                       <tr>
-                        <th>Rank</th>
-                        <th>Player</th>
-                        <th>Score</th>
+                        <th data-lang-key="rank">Rank</th>
+                        <th data-lang-key="player">Player</th>
+                        <th data-lang-key="score">Score</th>
                       </tr>
                     </thead>
                     <tbody id="completionRankingsTable">
@@ -501,7 +495,7 @@
                       flex-grow: 3;
                     "
                   >
-                    <i class="bi bi-arrow-repeat"></i> Start New Quiz
+                    <i class="bi bi-arrow-repeat"></i> <span data-lang-key="start_new_quiz">Start New Quiz</span>
                   </a>
                   <button
                     id="downloadCsvBtn"
@@ -514,7 +508,7 @@
                       min-width: 120px;
                     "
                   >
-                    <i class="bi bi-download"></i> Download CSV
+                    <i class="bi bi-download"></i> <span data-lang-key="download_csv">Download CSV</span>
                   </button>
                 </div>
               </div>
@@ -529,15 +523,13 @@
           <div class="card">
             <div class="card-body">
               <div class="alert alert-info mb-4">
-                <i class="bi bi-info-circle"></i> Click on a quiz session to
-                view detailed results.
+                <i class="bi bi-info-circle"></i> <span data-lang-key="click_quiz_view_results">Click on a quiz session to view detailed results.</span>
               </div>
 
               <!-- Container for empty state -->
               <div id="historyEmptyState" class="mb-4 d-none">
                 <div class="alert alert-warning">
-                  <i class="bi bi-exclamation-triangle"></i> No quiz history
-                  available
+                  <i class="bi bi-exclamation-triangle"></i> <span data-lang-key="no_quiz_history">No quiz history available</span>
                 </div>
               </div>
 
@@ -548,16 +540,18 @@
                     <table class="table table-hover mb-0">
                       <thead>
                         <tr class="table-light">
-                          <th scope="col" style="width: 70%">Quiz Session</th>
+                          <th scope="col" style="width: 70%" data-lang-key="quiz_session">Quiz Session</th>
                           <th
                             scope="col"
                             style="width: 15%; text-align: center"
+                            data-lang-key="players"
                           >
                             Players
                           </th>
                           <th
                             scope="col"
                             style="width: 15%; text-align: center"
+                            data-lang-key="action"
                           >
                             Action
                           </th>
@@ -575,18 +569,18 @@
               <div id="historyLoadingState" class="card mb-4">
                 <div class="card-body text-center py-4">
                   <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading history...</span>
+                    <span class="visually-hidden" data-lang-key="loading">Loading history...</span>
                   </div>
                 </div>
               </div>
 
               <div class="d-flex gap-2">
                 <button id="backToTeacherBtn" class="btn btn-secondary">
-                  <i class="bi bi-arrow-left"></i> Back
+                  <i class="bi bi-arrow-left"></i> <span data-lang-key="back">Back</span>
                 </button>
 
                 <button id="refreshHistoryBtn" class="btn btn-outline-primary">
-                  <i class="bi bi-arrow-clockwise"></i> Refresh History
+                  <i class="bi bi-arrow-clockwise"></i> <span data-lang-key="refresh_history">Refresh History</span>
                 </button>
               </div>
             </div>
@@ -600,8 +594,7 @@
           <div class="card">
             <div class="card-body">
               <div class="alert alert-info mb-4">
-                <i class="bi bi-info-circle"></i> Select a quiz to create a new
-                room. Each question set becomes a room that students can join.
+                <i class="bi bi-info-circle"></i> <span data-lang-key="select_quiz_create_room">Select a quiz to create a new room. Each question set becomes a room that students can join.</span>
               </div>
 
               <div class="card mb-4">
@@ -613,7 +606,7 @@
                     <!-- Quiz list will be populated here -->
                     <div class="text-center my-3">
                       <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading quizzes...</span>
+                        <span class="visually-hidden" data-lang-key="loading">Loading quizzes...</span>
                       </div>
                     </div>
                   </div>
@@ -625,11 +618,11 @@
                   id="backToTeacherFromCreateBtn"
                   class="btn btn-secondary"
                 >
-                  <i class="bi bi-arrow-left"></i> Back
+                  <i class="bi bi-arrow-left"></i> <span data-lang-key="back">Back</span>
                 </button>
 
                 <button id="refreshQuizzesBtn" class="btn btn-outline-primary">
-                  <i class="bi bi-arrow-clockwise"></i> Refresh Quiz List
+                  <i class="bi bi-arrow-clockwise"></i> <span data-lang-key="refresh_quiz_list">Refresh Quiz List</span>
                 </button>
               </div>
             </div>
@@ -659,14 +652,14 @@
               </div>
 
               <div class="mb-4">
-                <h4>Player Rankings</h4>
+                <h4 data-lang-key="player_rankings">Player Rankings</h4>
                 <div class="table-responsive">
                   <table class="table ranking-table">
                     <thead>
                       <tr>
-                        <th>Rank</th>
-                        <th>Player</th>
-                        <th>Score</th>
+                        <th data-lang-key="rank">Rank</th>
+                        <th data-lang-key="player">Player</th>
+                        <th data-lang-key="score">Score</th>
                       </tr>
                     </thead>
                     <tbody id="historyRankingsTable">
@@ -678,14 +671,14 @@
 
               <div class="d-flex gap-2">
                 <button id="backToHistoryBtn" class="btn btn-secondary">
-                  <i class="bi bi-arrow-left"></i> Back
+                  <i class="bi bi-arrow-left"></i> <span data-lang-key="back">Back</span>
                 </button>
                 <button
                   id="downloadHistoryCsvBtn"
                   class="btn btn-outline-secondary btn-sm"
                   style="white-space: nowrap; min-width: 120px"
                 >
-                  <i class="bi bi-download"></i> Download CSV
+                  <i class="bi bi-download"></i> <span data-lang-key="download_csv">Download CSV</span>
                 </button>
               </div>
             </div>
@@ -699,11 +692,12 @@
           <div class="card">
             <div class="card-body">
               <div class="mb-4">
-                <label class="form-label fw-bold">Quiz in JSON Format:</label>
+                <label class="form-label fw-bold" data-lang-key="quiz_json_format">Quiz in JSON Format:</label>
                 <textarea
                   id="quizJsonInput"
                   class="form-control font-monospace"
                   rows="15"
+                  data-lang-key="paste_quiz_json"
                   placeholder='Paste your quiz JSON here. Example:
 {
   "setName": "My Quiz Name",
@@ -724,7 +718,7 @@
               
               <div class="alert alert-info mb-4">
                 <i class="bi bi-question-circle"></i>
-                <strong>Need help creating a quiz?</strong>
+                <strong data-lang-key="need_help_creating_quiz">Need help creating a quiz?</strong>
                 <a 
                   href="#" 
                   class="text-decoration-none fw-bold ms-2" 
@@ -732,7 +726,7 @@
                   data-bs-toggle="modal" 
                   data-bs-target="#createQuizHelpModal"
                 >
-                  Click here
+                  <span data-lang-key="click_here">Click here</span>
                 </a>
               </div>
 
@@ -744,17 +738,17 @@
 
               <div class="d-flex gap-2">
                 <button id="backToDashboardFromCreateBtn" class="btn btn-secondary">
-                  <i class="bi bi-arrow-left"></i> Back
+                  <i class="bi bi-arrow-left"></i> <span data-lang-key="back">Back</span>
                 </button>
                 <button type="button" class="btn btn-success" id="saveNewQuizBtn">
-                  <i class="bi bi-check-lg"></i> Save Quiz
+                  <i class="bi bi-check-lg"></i> <span data-lang-key="save_quiz">Save Quiz</span>
                 </button>
                 <a
                   href="/api/quiz-template"
                   class="btn btn-outline-success"
                   id="downloadTemplateBtn"
                 >
-                  <i class="bi bi-file-earmark-text"></i> Download Template
+                  <i class="bi bi-file-earmark-text"></i> <span data-lang-key="download_template">Download Template</span>
                 </a>
               </div>
             </div>
@@ -773,7 +767,7 @@
       <div class="modal-dialog modal-lg">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title" id="createQuizHelpModalLabel">
+            <h5 class="modal-title" id="createQuizHelpModalLabel" data-lang-key="how_to_create_quiz">
               How to Create Your Quiz
             </h5>
             <button
@@ -785,8 +779,54 @@
           </div>
           <div class="modal-body">
             <div class="mb-4">
-              <label class="alert alert-info mb-4">Copy this prompt to ChatGPT along with your teaching materials. Make sure to change the [YOUR TOPIC/MATERIALS] placeholder to match your content.</label>
-              <textarea id="chatgptPromptText" class="form-control font-monospace bg-light" rows="15" readonly style="resize: none;">I need to create a quiz in JSON format. Please generate a json format text based on [YOUR TOPIC/MATERIALS]. Follow this exact structure:
+              <label class="alert alert-info mb-4" data-lang-key="copy_chatgpt_prompt">Copy this prompt to ChatGPT along with your teaching materials. Make sure to change the [YOUR TOPIC/MATERIALS] placeholder to match your content.</label>
+              <textarea id="chatgptPromptText" class="form-control font-monospace bg-light" rows="15" readonly style="resize: none;"></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-primary" type="button" id="copyPromptBtn">
+              <i class="bi bi-clipboard"></i> <span data-lang-key="copy">COPY</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        var copyPromptBtn = document.getElementById('copyPromptBtn');
+        var chatgptPromptText = document.getElementById('chatgptPromptText');
+        
+        // Function to update ChatGPT prompt text based on language
+        function updateChatGPTPrompt() {
+          const currentLang = LanguageUtils ? LanguageUtils.getCurrentLanguage() : 'en';
+          
+          let promptText;
+          if (currentLang === 'id') {
+            promptText = `Saya perlu membuat kuis dalam format JSON. Harap buat teks format json berdasarkan [TOPIK/MATERI ANDA]. Ikuti struktur yang tepat ini:
+
+{
+  "setName": "Quiz Title",
+  "setDescription": "Quiz description",
+  "questions": [
+    {
+      "id": 1,
+      "question": "Question text?",
+      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "correctAnswer": 0,
+      "timeLimit": 20,
+      "points": 1000
+    }
+  ]
+}
+
+Pastikan:
+- Setiap pertanyaan memiliki id unik dimulai dari 1
+- correctAnswer adalah indeks (0-3) dari opsi yang benar
+- timeLimit dalam detik (10-30 direkomendasikan)
+- points dapat bervariasi (500-1000 tipikal)
+- Sertakan total 10-15 pertanyaan`;
+          } else {
+            promptText = `I need to create a quiz in JSON format. Please generate a json format text based on [YOUR TOPIC/MATERIALS]. Follow this exact structure:
 
 {
   "setName": "Quiz Title",
@@ -808,28 +848,40 @@ Make sure:
 - correctAnswer is the index (0-3) of the correct option
 - timeLimit is in seconds (10-30 recommended)
 - points can vary (500-1000 typical)
-- Include 10-15 questions total</textarea>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button class="btn btn-primary" type="button" id="copyPromptBtn">
-              <i class="bi bi-clipboard"></i> COPY
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-    <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        var copyPromptBtn = document.getElementById('copyPromptBtn');
-        var chatgptPromptText = document.getElementById('chatgptPromptText');
+- Include 10-15 questions total`;
+          }
+          
+          if (chatgptPromptText) {
+            chatgptPromptText.value = promptText;
+          }
+        }
+        
+        // Update prompt text on page load
+        updateChatGPTPrompt();
+        
+        // Listen for language changes and update prompt
+        if (LanguageUtils) {
+          // Override the applyTranslations method to also update the prompt
+          const originalApplyTranslations = LanguageUtils.applyTranslations;
+          LanguageUtils.applyTranslations = function(lang) {
+            originalApplyTranslations.call(this, lang);
+            updateChatGPTPrompt();
+          };
+        }
+        
         if (copyPromptBtn && chatgptPromptText) {
           copyPromptBtn.addEventListener('click', function() {
             chatgptPromptText.select();
             document.execCommand('copy');
-            copyPromptBtn.innerHTML = '<i class="bi bi-check"></i> Copied!';
+            
+            // Get current language for feedback text
+            const currentLang = LanguageUtils ? LanguageUtils.getCurrentLanguage() : 'en';
+            const copiedText = currentLang === 'id' ? 'Tersalin!' : 'Copied!';
+            
+            copyPromptBtn.innerHTML = `<i class="bi bi-check"></i> ${copiedText}`;
             setTimeout(function() {
-              copyPromptBtn.innerHTML = '<i class="bi bi-clipboard"></i> Copy';
+              const copyText = LanguageUtils ? LanguageUtils.t('copy') : 'Copy';
+              copyPromptBtn.innerHTML = `<i class="bi bi-clipboard"></i> ${copyText}`;
             }, 2000);
           });
         }
