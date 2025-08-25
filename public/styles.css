@@ -33,7 +33,8 @@ a.quiz-logo-clickable:hover img.quiz-logo-clickable {
 }
 
 /* Container styles with limited max-width */
-.container {
+.container,
+.container-fluid {
   width: 92%; /* Slightly narrower for better consistency */
   max-width: 900px; /* Medium size max-width to prevent excessive stretching */
   padding: 0;
@@ -841,6 +842,8 @@ table th {
 
 /* Question Results Screen - Full Height Layout */
 .question-results-container {
+  max-width: 900px; /* Match teacher view max-width */
+  margin: 0 auto; /* Center the container */
   min-height: calc(
     100vh - 180px
   ); /* Full height minus header and alert space */

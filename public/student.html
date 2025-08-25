@@ -23,7 +23,7 @@
     </style>
   </head>
   <body>
-    <div class="container-fluid">
+    <div class="container mt-3">
       <!-- Join Quiz Screen -->
       <div id="joinQuizScreen" class="row">
         <div class="col-12 p-0">
@@ -93,45 +93,33 @@
 
       <!-- Waiting Room -->
       <div id="waitingRoomScreen" class="row d-none">
-        <div class="col-12">
-          <div class="text-center mt-3 mb-4">
-            <span class="quiz-logo-clickable">
-              <img
-                src="quiz-quest-logo-horizontal.png"
-                alt="Quiz Quest"
-                style="
-                  width: 100%;
-                  max-width: 400px;
-                  height: auto;
-                  max-height: none !important;
-                "
-              />
-            </span>
-          </div>
-        </div>
-        <div class="col-md-8 offset-md-2">
-          <div
-            class="card border-0"
-            style="
-              background-color: white;
-              box-shadow: none !important;
-              border: none !important;
-              -webkit-box-shadow: none !important;
-              -moz-box-shadow: none !important;
-            "
-          >
-            <div class="card-body text-center" style="background-color: white">
-              <div class="d-flex justify-content-center">
-                <div
-                  class="alert alert-success mb-4"
-                  style="max-width: 500px; width: 100%"
-                >
-                  <i class="bi bi-check-circle"></i> You've successfully joined
-                  the room!
-                </div>
+        <div class="col-12 p-0">
+          <div class="join-quiz-container">
+            <div class="text-center mt-3 mb-4">
+              <span class="quiz-logo-clickable">
+                <img
+                  src="quiz-quest-logo-horizontal.png"
+                  alt="Quiz Quest"
+                  style="
+                    width: 100%;
+                    max-width: 400px;
+                    height: auto;
+                    max-height: none !important;
+                  "
+                />
+              </span>
+            </div>
+
+            <div class="join-quiz-content">
+              <div
+                class="alert alert-success mb-4"
+                style="width: 100%"
+              >
+                <i class="bi bi-check-circle"></i> You've successfully joined
+                the room!
               </div>
 
-              <div class="mb-4">
+              <div class="mb-4 text-center">
                 <h4>
                   <span style="color: #6c757d">Room:</span>
                   <span id="waitingRoomId" style="color: #0d6efd"></span>
@@ -139,14 +127,14 @@
                 <p>Wait for the teacher to start the quiz</p>
               </div>
 
-              <div class="mb-4">
+              <div class="mb-4 text-center">
                 <div class="spinner-border text-success" role="status">
                   <span class="visually-hidden">Loading...</span>
                 </div>
                 <p class="mt-2">Waiting for the quiz to begin...</p>
               </div>
 
-              <div class="mb-4">
+              <div class="mb-4 text-center">
                 <h4 style="color: #6c757d">Players in this room:</h4>
                 <div
                   style="
@@ -166,12 +154,14 @@
                   </div>
                 </div>
               </div>
+            </div>
 
+            <div class="join-quiz-button">
               <!-- Back Button -->
-              <div class="mb-2 mt-4">
+              <div class="d-grid">
                 <button
                   id="waitingRoomBackBtn"
-                  class="btn btn-secondary btn-lg w-100"
+                  class="btn btn-secondary btn-lg"
                 >
                   <i class="bi bi-arrow-left"></i> BACK
                 </button>
@@ -183,7 +173,7 @@
 
       <!-- Quiz Question Screen -->
       <div id="quizQuestionScreen" class="row d-none">
-        <div class="col-12">
+        <div class="col-12 p-0">
           <div class="text-center mt-3 mb-4">
             <span class="quiz-logo-clickable">
               <img
@@ -198,8 +188,6 @@
               />
             </span>
           </div>
-        </div>
-        <div class="col-md-8 offset-md-2">
           <div class="card">
             <div class="card-header bg-success">
               <div class="d-flex justify-content-between align-items-center">
@@ -289,7 +277,7 @@
 
       <!-- Question Results Screen (for student) -->
       <div id="questionResultsScreen" class="row d-none">
-        <div class="col-12">
+        <div class="col-12 p-0">
           <div class="text-center mt-3 mb-4">
             <a href="/" class="quiz-logo-clickable">
               <img
@@ -304,8 +292,6 @@
               />
             </a>
           </div>
-        </div>
-        <div class="col-md-8 offset-md-2">
           <div class="question-results-container">
             <div class="question-results-content text-center">
               <div id="answerResultMsg" class="alert mb-4">
@@ -375,6 +361,20 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="utils.js"></script>
+    <script src="student.js"></script>
+  </body>
+</html>
+    <script src="utils.js"></script>
+    <script src="student.js"></script>
+  </body>
+</html>
+  </body>
+</html>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
