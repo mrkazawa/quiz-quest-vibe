@@ -1005,7 +1005,7 @@ function endQuiz(roomId) {
   // Delete the room immediately after quiz ends
   delete rooms[roomId];
   console.log(`Room ${roomId} was deleted after quiz ended`);
-}
+};
 
 // Authentication middleware
 const requireTeacherAuth = (req, res, next) => {
@@ -1254,6 +1254,105 @@ app.get("/api/quiz-history/:historyId", (req, res) => {
   }
 
   res.json(quizHistory[historyId]);
+});
+
+// Language preference endpoints
+app.post('/api/set-language', (req, res) => {
+  const { language } = req.body;
+  
+  if (!language || !['en', 'id'].includes(language)) {
+    return res.status(400).json({ error: 'Invalid language' });
+  }
+  
+  // Store in session
+  req.session.language = language;
+  res.json({ success: true });
+});
+
+app.get('/api/get-language', (req, res) => {
+  const language = req.session.language || 'en';
+  res.json({ language });
+});
+
+// Server-side translations
+const serverTranslations = {
+  en: {
+    'quiz_quest_student': 'Quiz Quest - Student',
+    'quiz_quest_teacher': 'Quiz Quest - Teacher',
+    'welcome': 'Welcome!',
+    'choose_role': 'Choose your role to get started:',
+    'im_teacher': "I'M A TEACHER",
+    'im_student': "I'M A STUDENT",
+    'teacher_authentication': 'Teacher Authentication',
+    'enter_password_continue': 'Please enter the teacher password to continue:',
+    'enter_password': 'Enter password',
+    'incorrect_password': 'Incorrect password. Please try again.',
+    'cancel': 'Cancel',
+    'submit': 'Submit',
+    'your_name': 'Your Name',
+    'student_id': 'Student ID',
+    'room_id': 'Room ID',
+    'join_quiz': 'Join Quiz'
+  },
+  id: {
+    'quiz_quest_student': 'Quiz Quest - Siswa',
+    'quiz_quest_teacher': 'Quiz Quest - Guru',
+    'welcome': 'Selamat Datang!',
+    'choose_role': 'Pilih peran Anda untuk memulai:',
+    'im_teacher': 'SAYA GURU',
+    'im_student': 'SAYA SISWA',
+    'teacher_authentication': 'Autentikasi Guru',
+    'enter_password_continue': 'Masukkan kata sandi guru untuk melanjutkan:',
+    'enter_password': 'Masukkan kata sandi',
+    'incorrect_password': 'Kata sandi salah. Silakan coba lagi.',
+    'cancel': 'Batal',
+    'submit': 'Kirim',
+    'your_name': 'Nama Anda',
+    'student_id': 'ID Siswa',
+    'room_id': 'ID Ruangan',
+    'join_quiz': 'Gabung Kuis'
+  }
+};
+
+function getTranslation(key, lang = 'en') {
+  return serverTranslations[lang] && serverTranslations[lang][key] ? serverTranslations[lang][key] : key;
+}
+
+// Helper function to render template with translations
+function renderTemplate(templatePath, req, additionalData = {}) {
+  const language = req.session.language || 'en';
+  const fs = require('fs');
+  
+  let html = fs.readFileSync(templatePath, 'utf8');
+  
+  // Replace translation placeholders
+  html = html.replace(/\{\{t\s+([^}]+)\}\}/g, (match, key) => {
+    return getTranslation(key.trim(), language);
+  });
+  
+  // Replace any additional data
+  Object.keys(additionalData).forEach(key => {
+    const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
+    html = html.replace(regex, additionalData[key]);
+  });
+  
+  return html;
+}
+
+// Update routes to use server-side translations
+app.get("/", (req, res) => {
+  const language = req.session.language || 'en';
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
+app.get("/student", (req, res) => {
+  const language = req.session.language || 'en';
+  res.sendFile(path.join(__dirname, "public", "student.html"));
+});
+
+app.get("/teacher", requireTeacherAuth, (req, res) => {
+  const language = req.session.language || 'en';
+  res.sendFile(path.join(__dirname, "public", "teacher.html"));
 });
 
 // Start the server

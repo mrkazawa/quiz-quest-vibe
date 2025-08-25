@@ -84,14 +84,27 @@
 
           <div class="d-grid gap-3 mx-auto home-buttons">
             <button id="teacherBtn" class="btn btn-lg btn-primary">
-              I'M A TEACHER
+              <span data-lang-en="I'M A TEACHER" data-lang-id="SAYA GURU">I'M A TEACHER</span>
             </button>
             <a
               href="/student#dashboard"
               id="studentBtn"
               class="btn btn-lg btn-success"
-              >I'M A STUDENT</a
             >
+              <span data-lang-en="I'M A STUDENT" data-lang-id="SAYA SISWA">I'M A STUDENT</span>
+            </a>
+            
+            <!-- Language Toggle -->
+            <div class="d-flex justify-content-center align-items-center mt-2 mb-2">
+              <div class="btn-group" role="group" aria-label="Language Toggle">
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="langEn" style="min-width: 45px;">
+                  ENG
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="langId" style="min-width: 45px;">
+                  IND
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -107,7 +120,7 @@
       <div class="modal-dialog">
         <div class="modal-content">
           <div class="modal-header bg-primary">
-            <h5 class="modal-title">Teacher Authentication</h5>
+            <h5 class="modal-title" data-lang-en="Teacher Authentication" data-lang-id="Autentikasi Guru">Teacher Authentication</h5>
             <button
               type="button"
               class="btn-close"
@@ -116,13 +129,15 @@
             ></button>
           </div>
           <div class="modal-body">
-            <p>Please enter the teacher password to continue:</p>
+            <p data-lang-en="Please enter the teacher password to continue:" data-lang-id="Masukkan kata sandi guru untuk melanjutkan:">Please enter the teacher password to continue:</p>
             <div class="mb-3">
               <div class="input-group">
                 <input
                   type="password"
                   class="form-control"
                   id="teacherPassword"
+                  data-lang-en-placeholder="Enter password"
+                  data-lang-id-placeholder="Masukkan kata sandi"
                   placeholder="Enter password"
                 />
                 <button
@@ -137,6 +152,8 @@
                 id="passwordError"
                 class="invalid-feedback"
                 style="display: none"
+                data-lang-en="Incorrect password. Please try again."
+                data-lang-id="Kata sandi salah. Silakan coba lagi."
               >
                 Incorrect password. Please try again.
               </div>
@@ -147,11 +164,13 @@
               type="button"
               class="btn btn-secondary"
               data-bs-dismiss="modal"
+              data-lang-en="Cancel"
+              data-lang-id="Batal"
             >
               Cancel
             </button>
             <button type="button" class="btn btn-primary" id="submitPassword">
-              Submit
+              <span data-lang-en="Submit" data-lang-id="Kirim">Submit</span>
             </button>
           </div>
         </div>
@@ -159,8 +178,117 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="utils.js"></script>
     <script>
+      // Language system
+      const translations = {
+        en: {
+          "Welcome!": "Welcome!",
+          "Choose your role to get started:": "Choose your role to get started:"
+        },
+        id: {
+          "Welcome!": "Selamat Datang!",
+          "Choose your role to get started:": "Pilih peran Anda untuk memulai:"
+        }
+      };
+
+      let currentLanguage = localStorage.getItem('appLanguage') || 'en';
+
+      function updateLanguage(lang) {
+        currentLanguage = lang;
+        localStorage.setItem('appLanguage', lang);
+        
+        // Sync with server using LanguageUtils if available, otherwise use fetch directly
+        if (window.LanguageUtils) {
+          LanguageUtils.setLanguage(lang);
+        } else {
+          // Fallback direct sync if LanguageUtils is not loaded
+          fetch('/api/set-language', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ language: lang })
+          }).catch(error => {
+            console.warn('Failed to sync language with server:', error);
+          });
+        }
+        
+        // Update button states
+        document.getElementById('langEn').classList.toggle('btn-secondary', lang === 'en');
+        document.getElementById('langEn').classList.toggle('btn-outline-secondary', lang !== 'en');
+        document.getElementById('langId').classList.toggle('btn-secondary', lang === 'id');
+        document.getElementById('langId').classList.toggle('btn-outline-secondary', lang !== 'id');
+        
+        // Update all elements with language attributes
+        document.querySelectorAll('[data-lang-en]').forEach(element => {
+          const enText = element.getAttribute('data-lang-en');
+          const idText = element.getAttribute('data-lang-id');
+          
+          if (lang === 'en' && enText) {
+            element.textContent = enText;
+          } else if (lang === 'id' && idText) {
+            element.textContent = idText;
+          }
+        });
+
+        // Update placeholders
+        document.querySelectorAll('[data-lang-en-placeholder]').forEach(element => {
+          const enPlaceholder = element.getAttribute('data-lang-en-placeholder');
+          const idPlaceholder = element.getAttribute('data-lang-id-placeholder');
+          
+          if (lang === 'en' && enPlaceholder) {
+            element.placeholder = enPlaceholder;
+          } else if (lang === 'id' && idPlaceholder) {
+            element.placeholder = idPlaceholder;
+          }
+        });
+
+        // Update main page text using translations object
+        const welcomeH2 = document.querySelector('h2.mb-4');
+        const leadP = document.querySelector('p.lead.mb-4');
+        
+        if (welcomeH2) {
+          welcomeH2.textContent = translations[lang]["Welcome!"];
+        }
+        if (leadP) {
+          leadP.textContent = translations[lang]["Choose your role to get started:"];
+        }
+      }
+
       document.addEventListener("DOMContentLoaded", function () {
+        // Initialize language from server or localStorage
+        if (window.LanguageUtils) {
+          LanguageUtils.initLanguageFromServer().then(language => {
+            currentLanguage = language;
+            updateLanguage(currentLanguage);
+          });
+        } else {
+          // Fallback if LanguageUtils is not available
+          fetch('/api/get-language')
+            .then(response => response.json())
+            .then(data => {
+              if (data.language) {
+                currentLanguage = data.language;
+                localStorage.setItem('appLanguage', data.language);
+              }
+              updateLanguage(currentLanguage);
+            })
+            .catch(error => {
+              console.warn('Failed to get language from server:', error);
+              updateLanguage(currentLanguage);
+            });
+        }
+
+        // Language toggle event listeners
+        document.getElementById('langEn').addEventListener('click', () => {
+          updateLanguage('en');
+        });
+
+        document.getElementById('langId').addEventListener('click', () => {
+          updateLanguage('id');
+        });
+
         // Get the modal and button elements
         const teacherBtn = document.getElementById("teacherBtn");
         const passwordModal = new bootstrap.Modal(
@@ -215,11 +343,14 @@
         // Show loading state
         function setLoading(isLoading) {
           if (isLoading) {
-            submitPasswordBtn.innerHTML =
+            const loadingText = currentLanguage === 'id' ? 
+              '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Memverifikasi...' :
               '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Verifying...';
+            submitPasswordBtn.innerHTML = loadingText;
             submitPasswordBtn.disabled = true;
           } else {
-            submitPasswordBtn.innerHTML = "Submit";
+            const submitText = currentLanguage === 'id' ? 'Kirim' : 'Submit';
+            submitPasswordBtn.innerHTML = `<span data-lang-en="Submit" data-lang-id="Kirim">${submitText}</span>`;
             submitPasswordBtn.disabled = false;
           }
         }
@@ -259,7 +390,10 @@
             })
             .catch((error) => {
               console.error("Error:", error);
-              alert("An error occurred. Please try again.");
+              const errorMsg = currentLanguage === 'id' ? 
+                "Terjadi kesalahan. Silakan coba lagi." : 
+                "An error occurred. Please try again.";
+              alert(errorMsg);
               setLoading(false);
             });
         }

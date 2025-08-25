@@ -45,31 +45,34 @@
             <div class="join-quiz-content">
               <form id="joinForm">
                 <div class="mb-3">
-                  <label for="playerName" class="form-label">Your Name</label>
+                  <label for="playerName" class="form-label" data-lang-key="your_name">Your Name</label>
                   <input
                     type="text"
                     class="form-control form-control-lg"
                     id="playerName"
+                    data-lang-key="enter_your_name"
                     placeholder="Enter your name"
                     required
                   />
                 </div>
                 <div class="mb-3">
-                  <label for="studentId" class="form-label">Student ID</label>
+                  <label for="studentId" class="form-label" data-lang-key="student_id">Student ID</label>
                   <input
                     type="text"
                     class="form-control form-control-lg"
                     id="studentId"
+                    data-lang-key="enter_student_id"
                     placeholder="Enter your student ID"
                     required
                   />
                 </div>
                 <div class="mb-3">
-                  <label for="roomId" class="form-label">Room ID</label>
+                  <label for="roomId" class="form-label" data-lang-key="room_id">Room ID</label>
                   <input
                     type="text"
                     class="form-control form-control-lg"
                     id="roomId"
+                    data-lang-key="enter_room_id"
                     placeholder="Enter room ID"
                     required
                   />
@@ -83,7 +86,7 @@
                   form="joinForm"
                   class="btn btn-lg btn-success"
                 >
-                  <i class="bi bi-box-arrow-in-right"></i> Join Quiz
+                  <i class="bi bi-box-arrow-in-right"></i> <span data-lang-key="join_quiz">Join Quiz</span>
                 </button>
               </div>
             </div>
@@ -115,27 +118,26 @@
                 class="alert alert-success mb-4"
                 style="width: 100%"
               >
-                <i class="bi bi-check-circle"></i> You've successfully joined
-                the room!
+                <i class="bi bi-check-circle"></i> <span data-lang-key="successfully_joined">You've successfully joined the room!</span>
               </div>
 
               <div class="mb-4 text-center">
                 <h4>
-                  <span style="color: #6c757d">Room:</span>
+                  <span style="color: #6c757d" data-lang-key="room">Room:</span>
                   <span id="waitingRoomId" style="color: #0d6efd"></span>
                 </h4>
-                <p>Wait for the teacher to start the quiz</p>
+                <p data-lang-key="wait_teacher">Wait for the teacher to start the quiz</p>
               </div>
 
               <div class="mb-4 text-center">
                 <div class="spinner-border text-success" role="status">
-                  <span class="visually-hidden">Loading...</span>
+                  <span class="visually-hidden" data-lang-key="loading">Loading...</span>
                 </div>
-                <p class="mt-2">Waiting for the quiz to begin...</p>
+                <p class="mt-2" data-lang-key="waiting_quiz_begin">Waiting for the quiz to begin...</p>
               </div>
 
               <div class="mb-4 text-center">
-                <h4 style="color: #6c757d">Players in this room:</h4>
+                <h4 style="color: #6c757d" data-lang-key="players_in_room">Players in this room:</h4>
                 <div
                   style="
                     background-color: white;
@@ -163,7 +165,7 @@
                   id="waitingRoomBackBtn"
                   class="btn btn-secondary btn-lg"
                 >
-                  <i class="bi bi-arrow-left"></i> BACK
+                  <i class="bi bi-arrow-left"></i> <span data-lang-key="back">BACK</span>
                 </button>
               </div>
             </div>
@@ -248,13 +250,13 @@
                   role="status"
                   style="vertical-align: middle"
                 ></div>
-                Waiting for other players or time to end...
+                <span data-lang-key="waiting_other_players">Waiting for other players or time to end...</span>
               </div>
 
               <div id="scoreInfo" class="alert alert-info d-none">
                 <div class="d-flex justify-content-between align-items-center">
                   <div>
-                    <i class="bi bi-trophy-fill"></i> Your Score:
+                    <i class="bi bi-trophy-fill"></i> <span data-lang-key="your_score">Your Score:</span>
                     <span id="currentScore">0</span>
                   </div>
                   <div id="streakContainer" class="d-none">
@@ -299,7 +301,7 @@
               </div>
 
               <div class="mb-4">
-                <h4>Your Score: <span id="resultScore">0</span></h4>
+                <h4><span data-lang-key="your_score_colon">Your Score:</span> <span id="resultScore">0</span></h4>
                 <div id="resultStreakContainer" class="d-none">
                   <span id="resultStreakCounter" class="streak-badge">
                     <i class="bi bi-lightning-fill"></i>
@@ -312,7 +314,7 @@
                 <div class="spinner-border text-success" role="status">
                   <span class="visually-hidden">Loading...</span>
                 </div>
-                <p class="mt-2">Waiting for the next question...</p>
+                <p class="mt-2" data-lang-key="waiting_next_question">Waiting for the next question...</p>
               </div>
             </div>
           </div>
@@ -342,19 +344,19 @@
                 <div class="display-1 text-success mb-3">
                   <i class="bi bi-check-circle-fill"></i>
                 </div>
-                <h3 class="mb-3">Thank You for Participating!</h3>
+                <h3 class="mb-3" data-lang-key="thank_you_participating">Thank You for Participating!</h3>
                 <p class="mb-3">
-                  The quiz has ended. Your final score:
+                  <span data-lang-key="quiz_ended_final_score">The quiz has ended. Your final score:</span>
                   <span id="finalScoreValue" class="fw-bold fs-4">0</span>
                 </p>
-                <p>Your teacher will share the results soon.</p>
+                <p data-lang-key="teacher_share_results">Your teacher will share the results soon.</p>
               </div>
             </div>
 
             <div class="final-results-button">
               <div class="d-grid gap-2">
                 <button id="joinAnotherQuizBtn" class="btn btn-lg btn-success">
-                  <i class="bi bi-arrow-repeat"></i> Join Another Quiz
+                  <i class="bi bi-arrow-repeat"></i> <span data-lang-key="join_another_quiz">Join Another Quiz</span>
                 </button>
               </div>
             </div>
@@ -369,8 +371,6 @@
     <script src="student.js"></script>
   </body>
 </html>
-    <script src="utils.js"></script>
-    <script src="student.js"></script>
   </body>
 </html>
   </body>

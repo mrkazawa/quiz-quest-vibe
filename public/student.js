@@ -39,6 +39,11 @@ function renderScreenFromHash() {
   const hash = window.location.hash;
   console.log("renderScreenFromHash called with hash:", hash);
 
+  // Apply translations when rendering screens
+  setTimeout(() => {
+    LanguageUtils.applyTranslations();
+  }, 100);
+
   // Always check hash query for room ID and update input
   function getRoomIdFromHashQuery() {
     // Example: #dashboard?room=123456
@@ -134,8 +139,7 @@ function renderScreenFromHash() {
         const answerResultMsg = document.getElementById("answerResultMsg");
         if (answerResultMsg) {
           answerResultMsg.className = "alert alert-info";
-          answerResultMsg.innerHTML =
-            '<i class="bi bi-clock"></i> Loading results...';
+          answerResultMsg.innerHTML = `<i class="bi bi-clock"></i> ${LanguageUtils.t('loading_results')}`;
         }
       }
 
@@ -639,6 +643,11 @@ socket.on("new_question", (data) => {
   if (typeof serverQuestionIndex !== "number") {
     currentQuestionIndex++;
   }
+
+  // Apply translations after UI updates
+  setTimeout(() => {
+    LanguageUtils.applyTranslations();
+  }, 100);
 });
 
 // Start timer function
@@ -810,26 +819,27 @@ socket.on("question_ended", (data) => {
 
     if (studentDidAnswer && lastAnswer.isCorrect) {
       answerResultMsg.className = "alert alert-success";
-      answerResultMsg.innerHTML =
-        '<i class="bi bi-check-circle"></i> Your answer was correct!';
+      answerResultMsg.innerHTML = `<i class="bi bi-check-circle"></i> ${LanguageUtils.t('your_answer_correct')}`;
     } else if (studentDidAnswer && !lastAnswer.isCorrect) {
       answerResultMsg.className = "alert alert-danger";
-      answerResultMsg.innerHTML =
-        '<i class="bi bi-x-circle"></i> Your answer was incorrect!';
+      answerResultMsg.innerHTML = `<i class="bi bi-x-circle"></i> ${LanguageUtils.t('your_answer_incorrect')}`;
     } else {
       answerResultMsg.className = "alert alert-warning";
-      answerResultMsg.innerHTML =
-        '<i class="bi bi-exclamation-triangle"></i> You did not answer in time!';
+      answerResultMsg.innerHTML = `<i class="bi bi-exclamation-triangle"></i> ${LanguageUtils.t('no_answer_in_time')}`;
     }
   } else {
     answerResultMsg.className = "alert alert-warning";
-    answerResultMsg.innerHTML =
-      '<i class="bi bi-exclamation-triangle"></i> You did not answer in time!';
+    answerResultMsg.innerHTML = `<i class="bi bi-exclamation-triangle"></i> ${LanguageUtils.t('no_answer_in_time')}`;
   }
 
   // Reset isAppNavigation flag after all UI updates are complete
   setTimeout(() => {
     isAppNavigation = false;
+  }, 100);
+
+  // Apply translations after UI updates
+  setTimeout(() => {
+    LanguageUtils.applyTranslations();
   }, 100);
 });
 
@@ -858,6 +868,11 @@ socket.on("quiz_ended", (data) => {
   // Show the student's final score
   const finalScoreValue = document.getElementById("finalScoreValue");
   finalScoreValue.textContent = currentScore;
+
+  // Apply translations after UI updates
+  setTimeout(() => {
+    LanguageUtils.applyTranslations();
+  }, 100);
 });
 
 // Add event listener for "Join Another Quiz" button
@@ -869,4 +884,10 @@ document.addEventListener("DOMContentLoaded", () => {
       window.location.href = "/student#dashboard";
     });
   }
+
+  // Initialize language from server and apply translations
+  LanguageUtils.initLanguageFromServer().then((language) => {
+    LanguageUtils.applyTranslations(language);
+    renderScreenFromHash(); // Render screen after language is loaded
+  });
 });
