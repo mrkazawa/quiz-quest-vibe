@@ -276,6 +276,8 @@ window.LanguageUtils = {
       
       if (element.tagName === 'INPUT' && element.hasAttribute('placeholder')) {
         element.placeholder = translation;
+      } else if (element.tagName === 'TEXTAREA' && element.hasAttribute('placeholder')) {
+        element.placeholder = translation;
       } else {
         element.textContent = translation;
       }

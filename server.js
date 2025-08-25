@@ -1292,7 +1292,8 @@ const serverTranslations = {
     'your_name': 'Your Name',
     'student_id': 'Student ID',
     'room_id': 'Room ID',
-    'join_quiz': 'Join Quiz'
+    'join_quiz': 'Join Quiz',
+    'paste_quiz_json': 'Paste your quiz JSON here.'
   },
   id: {
     'quiz_quest_student': 'Quiz Quest - Siswa',
@@ -1310,7 +1311,8 @@ const serverTranslations = {
     'your_name': 'Nama Anda',
     'student_id': 'ID Siswa',
     'room_id': 'ID Ruangan',
-    'join_quiz': 'Gabung Kuis'
+    'join_quiz': 'Gabung Kuis',
+    'paste_quiz_json': 'Tempel JSON kuis Anda di sini.'
   }
 };
 

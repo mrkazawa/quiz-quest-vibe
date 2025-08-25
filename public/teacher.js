@@ -123,6 +123,15 @@ document.addEventListener("DOMContentLoaded", () => {
         updateHeaderTitle(LanguageUtils.t(currentScreen.toLowerCase().replace(/\s+/g, '_')));
       }
     }
+    
+    // Apply placeholder translations specifically for textarea elements
+    document.querySelectorAll('textarea[data-lang-key]').forEach(element => {
+      const key = element.getAttribute('data-lang-key');
+      const translation = LanguageUtils.t(key, language);
+      if (translation) {
+        element.placeholder = translation;
+      }
+    });
   });
 
   // Add event handler for Start New Quiz button in completion screen
