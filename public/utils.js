@@ -147,7 +147,14 @@ window.LanguageUtils = {
         // Modal translations
         'how_to_create_quiz': 'How to Create Your Quiz',
         'copy_chatgpt_prompt': 'Copy this prompt to ChatGPT along with your teaching materials. Make sure to change the [YOUR TOPIC/MATERIALS] placeholder to match your content.',
-        'copy': 'Copy'
+        'copy': 'Copy',
+        
+        // Table headers and dynamic content
+        'quiz_details': 'Quiz Details',
+        'questions': 'Questions',
+        'no_description_available': 'No description available',
+        'create_room': 'Create Room',
+        'no_quizzes_available': 'No quizzes available'
       },
       id: {
         // Common translations
@@ -240,7 +247,14 @@ window.LanguageUtils = {
         // Modal translations
         'how_to_create_quiz': 'Cara Membuat Kuis Anda',
         'copy_chatgpt_prompt': 'Salin prompt ini ke ChatGPT beserta materi pengajaran Anda. Pastikan untuk mengubah placeholder [TOPIK/MATERI ANDA] agar sesuai dengan konten Anda.',
-        'copy': 'Salin'
+        'copy': 'Salin',
+        
+        // Table headers and dynamic content
+        'quiz_details': 'Detail Kuis',
+        'questions': 'Pertanyaan',
+        'no_description_available': 'Tidak ada deskripsi tersedia',
+        'create_room': 'Buat Ruangan',
+        'no_quizzes_available': 'Tidak ada kuis tersedia'
       }
     };
 
