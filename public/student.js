@@ -626,7 +626,7 @@ socket.on("new_question", (data) => {
   }
 
   // Set question text and timer
-  document.getElementById("questionNumber").textContent = `Question ${
+  document.getElementById("questionNumber").textContent = `${LanguageUtils.t('question')} ${
     currentQuestionIndex + 1
   }`;
   document.getElementById("questionText").textContent = question;

@@ -154,7 +154,9 @@ window.LanguageUtils = {
         'questions': 'Questions',
         'no_description_available': 'No description available',
         'create_room': 'Create Room',
-        'no_quizzes_available': 'No quizzes available'
+        'no_quizzes_available': 'No quizzes available',
+        'question': 'Question',
+        'of': 'of'
       },
       id: {
         // Common translations
@@ -254,7 +256,9 @@ window.LanguageUtils = {
         'questions': 'Pertanyaan',
         'no_description_available': 'Tidak ada deskripsi tersedia',
         'create_room': 'Buat Ruangan',
-        'no_quizzes_available': 'Tidak ada kuis tersedia'
+        'no_quizzes_available': 'Tidak ada kuis tersedia',
+        'question': 'Pertanyaan',
+        'of': 'dari'
       }
     };
 

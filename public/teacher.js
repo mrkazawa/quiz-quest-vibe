@@ -807,13 +807,13 @@ socket.on("new_question", (data) => {
       : currentQuestionIndex + 1;
   document.getElementById(
     "questionNumber"
-  ).textContent = `Question ${currentNum} of ${totalQuestions}`;
+  ).textContent = `${LanguageUtils.t('question')} ${currentNum} ${LanguageUtils.t('of')} ${totalQuestions}`;
 
   // Change Next Question button to Finalize Quiz if on last question
   if (currentNum === totalQuestions) {
-    nextQuestionBtn.textContent = "Finalize Quiz";
+    nextQuestionBtn.innerHTML = `<i class="bi bi-arrow-right"></i> <span data-lang-key="finalize_quiz">${LanguageUtils.t('finalize_quiz')}</span>`;
   } else {
-    nextQuestionBtn.textContent = "Next Question";
+    nextQuestionBtn.innerHTML = `<i class="bi bi-arrow-right"></i> <span data-lang-key="next_question">${LanguageUtils.t('next_question')}</span>`;
   }
   document.getElementById("questionText").textContent = question;
 
