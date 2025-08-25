@@ -692,60 +692,19 @@
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Create New Quiz Modal -->
-    <div
-      class="modal fade"
-      id="createNewQuizModal"
-      tabindex="-1"
-      aria-hidden="true"
-    >
-      <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-          <div class="modal-header bg-success">
-            <h5 class="modal-title">Create New Quiz</h5>
-            <button
-              type="button"
-              class="btn-close"
-              data-bs-dismiss="modal"
-              aria-label="Close"
-            ></button>
-          </div>
-          <div class="modal-body">
-            <div class="alert alert-info mb-3">
-              <i class="bi bi-info-circle"></i> <strong>Instructions:</strong>
-              <br />• Paste your quiz JSON below following the template format
-              <br />• Make sure to include all required fields: setName,
-              setDescription, questions array <br />• Each question must have:
-              id, question, options (array of 4), correctAnswer (0-3),
-              timeLimit, points
-            </div>
-
-            <div class="alert alert-success mb-3">
-              <div class="d-flex justify-content-between align-items-center">
-                <div>
-                  <i class="bi bi-download"></i>
-                  <strong>Need a template?</strong> <br />Download a sample quiz
-                  template to get started quickly.
-                </div>
-                <a
-                  href="/api/quiz-template"
-                  class="btn btn-outline-success btn-sm"
-                  id="downloadTemplateBtn"
-                >
-                  <i class="bi bi-file-earmark-text"></i> Download Template
-                </a>
-              </div>
-            </div>
-
-            <div class="mb-3">
-              <label class="form-label fw-bold">Quiz in JSON Format:</label>
-              <textarea
-                id="quizJsonInput"
-                class="form-control font-monospace"
-                rows="15"
-                placeholder='Paste your quiz JSON here. Example:
+      <!-- Create New Quiz Screen -->
+      <div id="createNewQuizScreen" class="row d-none">
+        <div class="col-md-10 offset-md-1">
+          <div class="card">
+            <div class="card-body">
+              <div class="mb-4">
+                <label class="form-label fw-bold">Quiz in JSON Format:</label>
+                <textarea
+                  id="quizJsonInput"
+                  class="form-control font-monospace"
+                  rows="15"
+                  placeholder='Paste your quiz JSON here. Example:
 {
   "setName": "My Quiz Name",
   "setDescription": "A description of this quiz",
@@ -760,31 +719,122 @@
     }
   ]
 }'
-              ></textarea>
-            </div>
+                ></textarea>
+              </div>
+              
+              <div class="alert alert-info mb-4">
+                <i class="bi bi-question-circle"></i>
+                <strong>Need help creating a quiz?</strong>
+                <a 
+                  href="#" 
+                  class="text-decoration-none fw-bold ms-2" 
+                  style="color: #0d6efd;"
+                  data-bs-toggle="modal" 
+                  data-bs-target="#createQuizHelpModal"
+                >
+                  Click here
+                </a>
+              </div>
 
-            <div
-              id="quizValidationMessage"
-              class="alert d-none"
-              role="alert"
-            ></div>
-          </div>
-          <div class="modal-footer">
+              <div
+                id="quizValidationMessage"
+                class="alert d-none"
+                role="alert"
+              ></div>
+
+              <div class="d-flex gap-2">
+                <button id="backToDashboardFromCreateBtn" class="btn btn-secondary">
+                  <i class="bi bi-arrow-left"></i> Back
+                </button>
+                <button type="button" class="btn btn-success" id="saveNewQuizBtn">
+                  <i class="bi bi-check-lg"></i> Save Quiz
+                </button>
+                <a
+                  href="/api/quiz-template"
+                  class="btn btn-outline-success"
+                  id="downloadTemplateBtn"
+                >
+                  <i class="bi bi-file-earmark-text"></i> Download Template
+                </a>
+              </div>
+            </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Create Quiz Help Modal -->
+    <div
+      class="modal fade"
+      id="createQuizHelpModal"
+      tabindex="-1"
+      aria-labelledby="createQuizHelpModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="createQuizHelpModalLabel">
+              How to Create Your Quiz
+            </h5>
             <button
               type="button"
-              class="btn btn-secondary"
+              class="btn-close"
               data-bs-dismiss="modal"
-            >
-              Cancel
-            </button>
-            <button type="button" class="btn btn-success" id="saveNewQuizBtn">
-              <i class="bi bi-check-lg"></i> Create Quiz
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-4">
+              <label class="alert alert-info mb-4">Copy this prompt to ChatGPT along with your teaching materials. Make sure to change the [YOUR TOPIC/MATERIALS] placeholder to match your content.</label>
+              <textarea id="chatgptPromptText" class="form-control font-monospace bg-light" rows="15" readonly style="resize: none;">I need to create a quiz in JSON format. Please generate a json format text based on [YOUR TOPIC/MATERIALS]. Follow this exact structure:
+
+{
+  "setName": "Quiz Title",
+  "setDescription": "Quiz description",
+  "questions": [
+    {
+      "id": 1,
+      "question": "Question text?",
+      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "correctAnswer": 0,
+      "timeLimit": 20,
+      "points": 1000
+    }
+  ]
+}
+
+Make sure:
+- Each question has a unique id starting from 1
+- correctAnswer is the index (0-3) of the correct option
+- timeLimit is in seconds (10-30 recommended)
+- points can vary (500-1000 typical)
+- Include 10-15 questions total</textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-primary" type="button" id="copyPromptBtn">
+              <i class="bi bi-clipboard"></i> COPY
             </button>
           </div>
         </div>
       </div>
     </div>
-
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        var copyPromptBtn = document.getElementById('copyPromptBtn');
+        var chatgptPromptText = document.getElementById('chatgptPromptText');
+        if (copyPromptBtn && chatgptPromptText) {
+          copyPromptBtn.addEventListener('click', function() {
+            chatgptPromptText.select();
+            document.execCommand('copy');
+            copyPromptBtn.innerHTML = '<i class="bi bi-check"></i> Copied!';
+            setTimeout(function() {
+              copyPromptBtn.innerHTML = '<i class="bi bi-clipboard"></i> Copy';
+            }, 2000);
+          });
+        }
+      });
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script src="utils.js"></script>

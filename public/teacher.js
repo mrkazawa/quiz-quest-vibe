@@ -128,26 +128,24 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Create New Quiz Modal handlers
+  // Create New Quiz button event handler
   const createNewQuizBtn = document.getElementById("createNewQuizBtn");
+  if (createNewQuizBtn) {
+    createNewQuizBtn.addEventListener("click", () => {
+      window.location.hash = "#create";
+    });
+  }
+
+  // Create New Quiz page handlers
   const saveNewQuizBtn = document.getElementById("saveNewQuizBtn");
   const quizJsonInput = document.getElementById("quizJsonInput");
   const validationMessage = document.getElementById("quizValidationMessage");
-  let createNewQuizModal;
+  const backToDashboardFromCreateBtn = document.getElementById("backToDashboardFromCreateBtn");
 
-  // Initialize modal
-  const modalElement = document.getElementById("createNewQuizModal");
-  if (modalElement) {
-    createNewQuizModal = new bootstrap.Modal(modalElement);
-  }
-
-  if (createNewQuizBtn && createNewQuizModal) {
-    createNewQuizBtn.addEventListener("click", () => {
-      // Reset modal state
-      quizJsonInput.value = "";
-      validationMessage.classList.add("d-none");
-      validationMessage.classList.remove("alert-success", "alert-danger");
-      createNewQuizModal.show();
+  // Back to dashboard from create quiz page
+  if (backToDashboardFromCreateBtn) {
+    backToDashboardFromCreateBtn.addEventListener("click", () => {
+      window.location.hash = "#dashboard";
     });
   }
 
@@ -188,10 +186,13 @@ document.addEventListener("DOMContentLoaded", () => {
         if (response.ok && result.success) {
           showValidationMessage(`Quiz "${quizData.setName}" created successfully!`, "success");
 
-          // Close modal after short delay and refresh quiz list
+          // Navigate back to dashboard after short delay and refresh quiz list
           setTimeout(() => {
-            createNewQuizModal.hide();
-            loadAvailableQuizzes(); // Refresh the quiz list
+            window.location.hash = "#dashboard";
+            // Clear existing content and reload quizzes after navigation
+            setTimeout(() => {
+              loadAvailableQuizzes();
+            }, 100);
           }, 1500);
         } else {
           showValidationMessage(result.error || "Failed to create quiz", "danger");
@@ -551,6 +552,8 @@ document.addEventListener("DOMContentLoaded", () => {
       showScreen(quizHistoryScreen);
     } else if (hash === "#create-room") {
       showScreen(createRoomScreen);
+    } else if (hash === "#create") {
+      showScreen(createNewQuizScreen);
     } else {
       showScreen(quizSelectionScreen);
       loadAvailableQuizzes();
@@ -1422,6 +1425,12 @@ function showScreen(screenToShow) {
   historyDetailScreen.classList.add("d-none");
   createRoomScreen.classList.add("d-none");
 
+  // Get the create new quiz screen
+  const createNewQuizScreen = document.getElementById("createNewQuizScreen");
+  if (createNewQuizScreen) {
+    createNewQuizScreen.classList.add("d-none");
+  }
+
   // Show the specified screen
   screenToShow.classList.remove("d-none");
 
@@ -1443,6 +1452,8 @@ function showScreen(screenToShow) {
     screenName = "Quiz History Detail";
   } else if (screenToShow === createRoomScreen) {
     screenName = "Create Room";
+  } else if (screenToShow === createNewQuizScreen) {
+    screenName = "Create New Quiz";
   }
 
   // Use the utility function if available, otherwise update directly
